@@ -1,0 +1,17 @@
+{
+  "name": "kanbancord-bot",
+  "version": "1.0.0",
+  "description": "KanbanCord Discord bot",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "shard": "node src/shard.js",
+    "dev": "node src/index.js"
+  },
+  "dependencies": {
+    "@discordjs/rest": "^2.4.3",
+    "discord-api-types": "^0.37.119",
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.5.0"
+  }
+}
