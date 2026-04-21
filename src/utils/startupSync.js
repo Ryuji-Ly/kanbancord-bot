@@ -1,5 +1,5 @@
 const logger = require("./logger");
-const { listKnownServerIds } = require("../services/internalSyncApi");
+const { listKnownServerIds, markServerNotPresent } = require("../services/internalSyncApi");
 const { syncGuild } = require("./syncGuild");
 
 /**
@@ -25,7 +25,20 @@ async function runStartupSync(client) {
     }
 
     const guilds = [...client.guilds.cache.values()];
+    const currentGuildIds = new Set(guilds.map((guild) => guild.id));
     logger.info(`[StartupSync] Bot is in ${guilds.length} guild(s)`);
+
+    const staleServerIds = [...knownIds].filter((serverId) => !currentGuildIds.has(serverId));
+    for (const serverId of staleServerIds) {
+        try {
+            await markServerNotPresent({ serverId });
+            logger.info(`[StartupSync] [STALE] Marked server ${serverId} as bot-absent`);
+        } catch (error) {
+            logger.error(
+                `[StartupSync] [STALE] Failed to mark server ${serverId} as bot-absent: ${error.message}`,
+            );
+        }
+    }
 
     const results = { success: 0, failed: 0 };
 
