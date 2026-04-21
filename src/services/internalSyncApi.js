@@ -86,6 +86,13 @@ function deleteMember({ serverId, userId }) {
     });
 }
 
+function markServerNotPresent({ serverId }) {
+    return request(`/api/internal/sync/servers/${serverId}/presence`, {
+        method: "DELETE",
+        headers: syncHeaders(),
+    });
+}
+
 module.exports = {
     upsertServer,
     upsertRole,
@@ -95,4 +102,5 @@ module.exports = {
     syncMemberRoles,
     deleteRole,
     deleteMember,
+    markServerNotPresent,
 };

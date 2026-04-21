@@ -1,4 +1,5 @@
 const logger = require("../utils/logger");
+const { PermissionsBitField } = require("discord.js");
 const { syncGuild } = require("../utils/syncGuild");
 
 /**
@@ -7,6 +8,17 @@ const { syncGuild } = require("../utils/syncGuild");
  */
 function getNoticeChannel(guild) {
     return guild.publicUpdatesChannel ?? guild.systemChannel ?? null;
+}
+
+function canSendNotice(channel, me) {
+    if (!channel || !me) return false;
+    const perms = channel.permissionsFor(me);
+    if (!perms) return false;
+
+    return perms.has([
+        PermissionsBitField.Flags.ViewChannel,
+        PermissionsBitField.Flags.SendMessages,
+    ]);
 }
 
 module.exports = {
@@ -20,20 +32,32 @@ module.exports = {
             const noticeChannel = getNoticeChannel(fetched);
             let noticeMessage = null;
 
-            if (noticeChannel?.permissionsFor(fetched.members.me)?.has("SendMessages")) {
-                noticeMessage = await noticeChannel.send(
-                    `**KanbanCord** has joined the server and is syncing member and role data.\n` +
-                        `This may take a minute on larger servers — boards and permissions will be available once sync completes.`,
-                );
+            if (canSendNotice(noticeChannel, fetched.members.me)) {
+                try {
+                    noticeMessage = await noticeChannel.send(
+                        `**KanbanCord** has joined the server and is syncing member and role data.\n` +
+                            `This may take a minute on larger servers — boards and permissions will be available once sync completes.`,
+                    );
+                } catch (error) {
+                    logger.warn(
+                        `[GuildCreate] Could not send sync notice in "${fetched.name}" (${fetched.id}): ${error.message}`,
+                    );
+                }
             }
 
             const { roleCount, memberCount } = await syncGuild(fetched);
 
             if (noticeMessage) {
-                await noticeMessage.edit(
-                    `**KanbanCord** has finished syncing **${memberCount.toLocaleString()} members** and **${roleCount.toLocaleString()} roles**.\n` +
-                        `Boards and permissions are now available. Use \`/help\` to get started.`,
-                );
+                try {
+                    await noticeMessage.edit(
+                        `**KanbanCord** has finished syncing **${memberCount.toLocaleString()} members** and **${roleCount.toLocaleString()} roles**.\n` +
+                            `Boards and permissions are now available. Use \`/help\` to get started.`,
+                    );
+                } catch (error) {
+                    logger.warn(
+                        `[GuildCreate] Could not edit sync notice in "${fetched.name}" (${fetched.id}): ${error.message}`,
+                    );
+                }
             }
 
             logger.info(`[GuildCreate] Sync complete for "${fetched.name}"`);
