@@ -16,6 +16,8 @@ function mapGuildMember(member) {
         avatarUrl: member.user.displayAvatarURL(),
         nickname: member.nickname,
         joinedAt: member.joinedAt ? member.joinedAt.toISOString() : null,
+        // Exclude @everyone (same ID as guild) and bot-managed roles
+        roleIds: [...member.roles.cache.keys()].filter((id) => id !== member.guild.id),
     };
 }
 
