@@ -60,10 +60,39 @@ async function listKnownServerIds() {
     return new Set(Array.isArray(ids) ? ids : []);
 }
 
+/**
+ * Replaces all role assignments for a member.
+ * @param {{ serverId: string, userId: string, roleIds: string[] }} param
+ */
+function syncMemberRoles({ serverId, userId, roleIds }) {
+    return request(`/api/internal/sync/servers/${serverId}/members/${userId}/roles`, {
+        method: "PUT",
+        headers: syncHeaders(),
+        body: { roleIds: roleIds.map((id) => String(id)) },
+    });
+}
+
+function deleteRole({ serverId, roleId }) {
+    return request(`/api/internal/sync/servers/${serverId}/roles/${roleId}`, {
+        method: "DELETE",
+        headers: syncHeaders(),
+    });
+}
+
+function deleteMember({ serverId, userId }) {
+    return request(`/api/internal/sync/servers/${serverId}/members/${userId}`, {
+        method: "DELETE",
+        headers: syncHeaders(),
+    });
+}
+
 module.exports = {
     upsertServer,
     upsertRole,
     upsertMember,
     bootstrapServer,
     listKnownServerIds,
+    syncMemberRoles,
+    deleteRole,
+    deleteMember,
 };

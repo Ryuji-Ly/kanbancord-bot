@@ -1,34 +1,6 @@
 const logger = require("./logger");
-const { bootstrapServer, listKnownServerIds } = require("../services/internalSyncApi");
-const { buildServerPayload, mapGuildMember, mapGuildRole } = require("./syncPayloads");
-
-/**
- * Fetches every member in a guild, paginating in chunks of 1000 to handle
- * guilds that exceed a single chunk response.
- *
- * @param {import("discord.js").Guild} guild
- * @returns {Promise<import("discord.js").Collection<string, import("discord.js").GuildMember>>}
- */
-async function fetchAllMembers(guild) {
-    const members = await guild.members.fetch();
-
-    // If the returned count is less than the member count, paginate the remainder.
-    while (members.size < guild.memberCount) {
-        const lastId = members.last()?.id;
-        if (!lastId) break;
-
-        const chunk = await guild.members.fetch({ limit: 1000, after: lastId });
-        if (chunk.size === 0) break;
-
-        chunk.forEach((member, id) => members.set(id, member));
-
-        logger.info(
-            `[StartupSync] Fetched chunk: ${chunk.size} more members (total ${members.size})`,
-        );
-    }
-
-    return members;
-}
+const { listKnownServerIds } = require("../services/internalSyncApi");
+const { syncGuild } = require("./syncGuild");
 
 /**
  * Runs a full bootstrap sync for every guild the bot is in.
@@ -67,31 +39,15 @@ async function runStartupSync(client) {
             );
 
             const guild = await partialGuild.fetch();
-            const owner = await guild.fetchOwner();
-
-            const roles = await guild.roles.fetch();
-            const roleEntries = roles
-                .filter((role) => !role.managed)
-                .map((role) => mapGuildRole(role));
-
-            const members = await fetchAllMembers(guild);
-            const memberEntries = [...members.values()].map((member) => mapGuildMember(member));
-
-            const payload = {
-                ...buildServerPayload(guild, owner),
-                roles: roleEntries,
-                members: memberEntries,
-            };
-
-            await bootstrapServer({ serverId: guild.id, data: payload });
+            const { roleCount, memberCount } = await syncGuild(guild);
 
             logger.info(
-                `[StartupSync] [${label}] Done "${guild.name}" — ${roleEntries.length} roles, ${memberEntries.length} members`,
+                `[StartupSync] [${label}] Done "${guild.name}" — ${roleCount} roles, ${memberCount} members`,
             );
             results.success++;
         } catch (error) {
             logger.error(
-                `[StartupSync] [${label}] Failed "${partialGuild.name}" (${partialGuild.id}): ${error.message}`,
+                `[StartupSync] [${label}] Failed "${partialGuild.name}" (${partialGuild.id}): ${error.stack}`,
             );
             results.failed++;
         }
