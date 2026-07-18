@@ -2,11 +2,11 @@
   "name": "kanbancord-bot",
   "version": "1.0.0",
   "description": "KanbanCord Discord bot",
-  "main": "src/index.js",
+  "main": "src/shard.js",
   "scripts": {
-    "start": "node src/index.js",
+    "start": "node src/shard.js",
     "shard": "node src/shard.js",
-    "dev": "node src/index.js"
+    "dev": "node src/shard.js"
   },
   "dependencies": {
     "@discordjs/rest": "^2.4.3",
