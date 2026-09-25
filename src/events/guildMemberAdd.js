@@ -1,10 +1,10 @@
 const logger = require("../utils/logger");
-const { upsertMember, syncMemberRoles } = require("../services/internalSyncApi");
-const { mapGuildMember } = require("../utils/syncPayloads");
+const { upsertMember, syncMemberRoles } = require("../api/syncApi");
+const { mapGuildMember } = require("../services/sync/syncPayloads");
 
 module.exports = {
     name: "guildMemberAdd",
-    async execute(member, client) {
+    async execute(member) {
         const guild = member.guild;
         logger.info(`[MemberAdd] ${member.user.tag} joined "${guild.name}" (${guild.id})`);
 

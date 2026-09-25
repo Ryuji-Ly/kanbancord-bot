@@ -5,13 +5,17 @@
   "main": "src/shard.js",
   "scripts": {
     "start": "node src/shard.js",
-    "shard": "node src/shard.js",
-    "dev": "node src/shard.js"
+    "dev": "node src/shard.js",
+    "lint": "eslint .",
+    "test": "node --test \"test/**/*.test.js\""
   },
   "dependencies": {
-    "@discordjs/rest": "^2.4.3",
-    "discord-api-types": "^0.37.119",
-    "discord.js": "^14.18.0",
+    "discord.js": "^14.27.0",
     "dotenv": "^16.5.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "globals": "^17.12.0"
   }
 }
