@@ -84,6 +84,24 @@ function resolveTask(snapshot, input) {
     return resolveByIdOrName(snapshot.tasks, input, (task) => task.taskId, (task) => task.title, "task");
 }
 
+/** @param {ReturnType<typeof snapshotModel>} model */
+function resolveColumn(model, input) {
+    return resolveByIdOrName(model.columns, input, (column) => column.columnId, (column) => column.name, "column");
+}
+
+/** A priority level, or null for "none". */
+function resolvePriority(model, input) {
+    const text = String(input ?? "").trim().toLowerCase();
+    if (text === "none" || text === "no priority") {
+        return null;
+    }
+    return resolveByIdOrName(model.priorities(), input, (level) => level.priorityId, (level) => level.name, "priority");
+}
+
+function resolveLabel(model, input) {
+    return resolveByIdOrName(model.labels(), input, (label) => label.labelId, (label) => label.name, "label");
+}
+
 /**
  * Autocomplete choices: up to 25 items whose name contains what was typed, those starting with it
  * first.
@@ -104,31 +122,35 @@ function snapshotModel(snapshot) {
     const columns = [...snapshot.columns].sort(byPosition);
     const tasksIn = (columnId) => snapshot.tasks.filter((task) => task.columnId === columnId).sort(byPosition);
     const features = snapshot.features ?? {};
+    const assignmentsOf = (task) => snapshot.assignments.filter((assignment) => assignment.taskId === task.taskId);
+    const roleAssignmentsOf = (task) => (snapshot.roleAssignments ?? []).filter((role) => role.taskId === task.taskId);
+    const taskLabelsOf = (task) => snapshot.taskLabels.filter((taskLabel) => taskLabel.taskId === task.taskId);
 
     return {
         board: snapshot.board,
         features,
+        permissions: snapshot.permissions ?? {},
         columns,
         tasksIn,
+        /** The board's priority levels, most urgent first. */
+        priorities: () => [...snapshot.priorities].sort((a, b) => a.position - b.position),
+        labels: () => [...snapshot.labels].sort((a, b) => a.name.localeCompare(b.name)),
+        /** Assignment records, with the ids needed to remove them. */
+        assignmentsOf,
+        roleAssignmentsOf,
+        taskLabelsOf,
         column: (columnId) => columns.find((column) => column.columnId === columnId) ?? null,
         task: (taskId) => snapshot.tasks.find((task) => task.taskId === taskId) ?? null,
         priorityOf: (task) =>
             features.PRIORITIES ? snapshot.priorities.find((level) => level.priorityId === task.priorityId) ?? null : null,
         labelsOf: (task) =>
             features.LABELS
-                ? snapshot.taskLabels
-                    .filter((taskLabel) => taskLabel.taskId === task.taskId)
+                ? taskLabelsOf(task)
                     .map((taskLabel) => snapshot.labels.find((label) => label.labelId === taskLabel.labelId))
                     .filter(Boolean)
                 : [],
-        assigneesOf: (task) =>
-            features.ASSIGNEES
-                ? snapshot.assignments.filter((assignment) => assignment.taskId === task.taskId).map((a) => String(a.userId))
-                : [],
-        rolesOf: (task) =>
-            features.ASSIGNEES
-                ? (snapshot.roleAssignments ?? []).filter((role) => role.taskId === task.taskId).map((r) => String(r.roleId))
-                : [],
+        assigneesOf: (task) => (features.ASSIGNEES ? assignmentsOf(task).map((a) => String(a.userId)) : []),
+        rolesOf: (task) => (features.ASSIGNEES ? roleAssignmentsOf(task).map((r) => String(r.roleId)) : []),
     };
 }
 
@@ -138,6 +160,9 @@ module.exports = {
     forgetBoard,
     resolveBoard,
     resolveTask,
+    resolveColumn,
+    resolvePriority,
+    resolveLabel,
     resolveByIdOrName,
     autocompleteChoices,
     snapshotModel,

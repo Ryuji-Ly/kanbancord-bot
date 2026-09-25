@@ -63,6 +63,11 @@ class InteractionContext {
         if (this.interaction.deferred || this.interaction.replied) {
             return;
         }
+        // A form opened by a slash command belongs to no message; its result is a new reply.
+        if (this.interaction.isModalSubmit?.() && !this.interaction.isFromMessage?.()) {
+            await this.interaction.deferReply();
+            return;
+        }
         if (this.isMessageOwner()) {
             await this.interaction.deferUpdate();
         } else {
