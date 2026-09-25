@@ -1,6 +1,6 @@
 const logger = require("../utils/logger");
-const { upsertMember, syncMemberRoles } = require("../services/internalSyncApi");
-const { mapGuildMember } = require("../utils/syncPayloads");
+const { upsertMember, syncMemberRoles } = require("../api/syncApi");
+const { mapGuildMember } = require("../services/sync/syncPayloads");
 
 /**
  * Returns true if the two members have a different role set.
@@ -17,7 +17,7 @@ function rolesChanged(oldMember, newMember) {
 
 module.exports = {
     name: "guildMemberUpdate",
-    async execute(oldMember, newMember, client) {
+    async execute(oldMember, newMember) {
         const guild = newMember.guild;
 
         try {

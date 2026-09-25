@@ -1,5 +1,5 @@
 const logger = require("../utils/logger");
-const { markServerNotPresent } = require("../services/internalSyncApi");
+const { markServerNotPresent } = require("../api/syncApi");
 
 module.exports = {
     name: "guildDelete",

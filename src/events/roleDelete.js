@@ -1,9 +1,9 @@
 const logger = require("../utils/logger");
-const { deleteRole } = require("../services/internalSyncApi");
+const { deleteRole } = require("../api/syncApi");
 
 module.exports = {
     name: "roleDelete",
-    async execute(role, client) {
+    async execute(role) {
         if (role.managed) return;
 
         try {

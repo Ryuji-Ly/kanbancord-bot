@@ -1,6 +1,6 @@
 const logger = require("../utils/logger");
 const { PermissionsBitField } = require("discord.js");
-const { syncGuild } = require("../utils/syncGuild");
+const { syncGuild } = require("../services/sync/syncGuild");
 
 /**
  * Returns the best channel to post admin notices in, or null if none available.
@@ -23,7 +23,7 @@ function canSendNotice(channel, me) {
 
 module.exports = {
     name: "guildCreate",
-    async execute(guild, client) {
+    async execute(guild) {
         logger.info(`[GuildCreate] Bot joined "${guild.name}" (${guild.id}) — starting full sync`);
 
         try {

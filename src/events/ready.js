@@ -1,6 +1,6 @@
 const { ActivityType } = require("discord.js");
 const logger = require("../utils/logger");
-const { runStartupSync } = require("../utils/startupSync");
+const { runStartupSync } = require("../services/sync/startupSync");
 
 module.exports = {
     name: "clientReady",

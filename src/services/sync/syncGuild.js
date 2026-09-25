@@ -1,5 +1,5 @@
-const logger = require("./logger");
-const { bootstrapServer } = require("../services/internalSyncApi");
+const logger = require("../../utils/logger");
+const { bootstrapServer } = require("../../api/syncApi");
 const { buildServerPayload, mapGuildMember, mapGuildRole } = require("./syncPayloads");
 
 /**

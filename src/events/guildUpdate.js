@@ -1,10 +1,10 @@
 const logger = require("../utils/logger");
-const { upsertServer } = require("../services/internalSyncApi");
-const { buildServerPayload } = require("../utils/syncPayloads");
+const { upsertServer } = require("../api/syncApi");
+const { buildServerPayload } = require("../services/sync/syncPayloads");
 
 module.exports = {
     name: "guildUpdate",
-    async execute(oldGuild, newGuild, client) {
+    async execute(oldGuild, newGuild) {
         // The owner has every permission in KanbanCord, so an ownership transfer must reach the API.
         const changed =
             oldGuild.ownerId !== newGuild.ownerId ||
