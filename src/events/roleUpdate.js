@@ -1,10 +1,10 @@
 const logger = require("../utils/logger");
-const { upsertRole } = require("../services/internalSyncApi");
-const { mapGuildRole } = require("../utils/syncPayloads");
+const { upsertRole } = require("../api/syncApi");
+const { mapGuildRole } = require("../services/sync/syncPayloads");
 
 module.exports = {
     name: "roleUpdate",
-    async execute(oldRole, newRole, client) {
+    async execute(oldRole, newRole) {
         if (newRole.managed) return;
 
         try {

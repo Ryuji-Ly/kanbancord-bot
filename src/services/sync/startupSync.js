@@ -1,5 +1,5 @@
-const logger = require("./logger");
-const { listKnownServerIds, markServerNotPresent } = require("../services/internalSyncApi");
+const logger = require("../../utils/logger");
+const { listKnownServerIds, markServerNotPresent } = require("../../api/syncApi");
 const { syncGuild } = require("./syncGuild");
 
 /**
