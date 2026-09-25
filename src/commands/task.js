@@ -18,7 +18,6 @@ module.exports = {
         ),
 
     info: {
-        description: "Tasks are the cards on a board.",
         subcommands: {
             view: {
                 description: "Shows a task's details, description, images and who is assigned, with buttons for its "
