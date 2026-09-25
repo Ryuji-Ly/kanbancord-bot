@@ -145,6 +145,22 @@ test("comment pages show authors by name and page newest first", () => {
     assert.ok(text.includes("page 1 of 3") && text.includes("1 image or video"));
 });
 
+test("comment totals are read from the API's page object", async () => {
+    const { commentView } = require("../src/services/boards/viewService");
+    const snapshot = snapshotFixture();
+    const ctx = {
+        guildId: "999",
+        user: { id: "comment-reader" },
+        api: {
+            get: async (path) => path.endsWith("/snapshot")
+                ? snapshot
+                : { content: [], page: { size: 5, number: 0, totalElements: 12, totalPages: 3 } },
+        },
+    };
+    const text = JSON.stringify((await commentView(ctx, 1, 100, 0)).toJSON());
+    assert.ok(text.includes("12 comments") && text.includes("page 1 of 3"), text);
+});
+
 test("/board view runs as the user who asked, and replies for the channel to see", async () => {
     const interactionCreate = require("../src/events/interactionCreate");
     const calls = [];

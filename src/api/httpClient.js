@@ -36,7 +36,11 @@ async function parseResponseBody(response) {
     return response.text();
 }
 
-async function request(path, { method = "GET", query, body, headers = {} } = {}) {
+/**
+ * @param {string} path
+ * @param {{ method?: string, query?: object, body?: any, headers?: object, timeoutMs?: number }} [options]
+ */
+async function request(path, { method = "GET", query, body, headers = {}, timeoutMs = TIMEOUT_MS } = {}) {
     let response;
     try {
         response = await fetch(withQuery(path, query), {
@@ -46,7 +50,7 @@ async function request(path, { method = "GET", query, body, headers = {} } = {})
                 ...headers,
             },
             body: body ? JSON.stringify(body) : undefined,
-            signal: AbortSignal.timeout(TIMEOUT_MS),
+            signal: AbortSignal.timeout(timeoutMs),
         });
     } catch (error) {
         throw new ApiError(`KanbanCord could not be reached: ${error.message}`, 0, null);

@@ -70,14 +70,16 @@ async function commentView(ctx, boardId, taskId, page = 0) {
     const result = await ctx.api.get(`/boards/${boardId}/tasks/${task.taskId}/comments`, {
         query: { activeOnly: true, page: wanted, size: COMMENT_PAGE_SIZE, sort: "createdAt,desc" },
     });
-    const pages = Math.max(1, Number(result?.totalPages) || 1);
+    // The API nests page totals under `page`.
+    const totals = result?.page ?? result ?? {};
+    const pages = Math.max(1, Number(totals.totalPages) || 1);
     return buildCommentPage({
         board: model.board,
         task,
         comments: Array.isArray(result?.content) ? result.content : [],
         page: Math.min(wanted, pages - 1),
         pages,
-        total: Number(result?.totalElements) || 0,
+        total: Number(totals.totalElements) || 0,
     });
 }
 
