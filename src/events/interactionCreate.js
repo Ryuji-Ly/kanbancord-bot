@@ -10,10 +10,12 @@ const logger = require("../utils/logger");
 module.exports = {
     name: "interactionCreate",
     async execute(interaction, client) {
+        const ctx = new InteractionContext(interaction);
+
         if (interaction.isAutocomplete()) {
             const command = client.commands.get(interaction.commandName);
             try {
-                await command?.autocomplete?.(interaction);
+                await command?.autocomplete?.(ctx);
             } catch (error) {
                 logger.warn(`Autocomplete for /${interaction.commandName} failed: ${error.message}`);
                 // An autocomplete that fails still has to answer, or Discord shows an error.
@@ -21,8 +23,6 @@ module.exports = {
             }
             return;
         }
-
-        const ctx = new InteractionContext(interaction);
 
         if (interaction.isChatInputCommand()) {
             const command = client.commands.get(interaction.commandName);

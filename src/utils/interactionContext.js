@@ -43,6 +43,14 @@ class InteractionContext {
         await this.interaction.deferReply({ flags: ephemeral ? MessageFlags.Ephemeral : undefined });
     }
 
+    /** Acknowledges a button or menu now, to replace its message later. */
+    async deferUpdate() {
+        if (this.interaction.deferred || this.interaction.replied) {
+            return;
+        }
+        await this.interaction.deferUpdate();
+    }
+
     /**
      * Sends the response, or replaces it if one was already sent or deferred. A deferred reply keeps
      * the visibility it was deferred with.
