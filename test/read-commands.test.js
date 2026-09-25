@@ -44,9 +44,10 @@ test("usage lines come from the options: <required> and [optional]", () => {
     assert.equal(usageOf(byPath.get("help")), "/help [command]");
     assert.equal(usageOf(byPath.get("report")), "/report <type>");
     assert.ok(JSON.stringify(buildHelpDetail(commands, "/Board  View").toJSON()).includes("/board view <board>"));
-    assert.throws(() => buildHelpDetail(commands, "board"), /always used with one of: \/board list, \/board view/);
+    assert.throws(() => buildHelpDetail(commands, "board"), /always used with one of: \/board archive, \/board create/);
     assert.throws(() => buildHelpDetail(commands, "nope"), /There is no \/nope/);
-    assert.deepEqual(helpChoices(commands, "board").map((choice) => choice.value), ["board list", "board view"],
+    assert.deepEqual(helpChoices(commands, "board").map((choice) => choice.value),
+        ["board archive", "board create", "board edit", "board list", "board restore", "board view"],
         "commands with subcommands cannot be run alone, so they are not offered");
     const overview = JSON.stringify(buildHelp(commands).toJSON());
     assert.ok(!overview.includes("**/board**"));
