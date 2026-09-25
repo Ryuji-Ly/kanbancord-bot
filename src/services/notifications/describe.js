@@ -74,6 +74,11 @@ function describeEntry(entry, names = {}) {
     const actor = actorOf(entry);
 
     switch (entry.action) {
+        // Reminders: nobody did anything, time passed.
+        case "TASK_DUE_SOON":
+            return `⏰ Due ${dueText(changes.dueDate) ?? "soon"}`;
+        case "TASK_OVERDUE":
+            return `⚠️ Overdue: it was due ${dueText(changes.dueDate) ?? "earlier"}`;
         case "TASK_CREATED":
             return `${actor} created it in ${nameOf(names, "columns", snapshot.columnId, "a column")}`;
         case "TASK_DELETED":
