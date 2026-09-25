@@ -17,7 +17,6 @@ module.exports = {
         ),
 
     info: {
-        description: "Boards hold columns, and columns hold tasks. Everything shown is only what you may see.",
         subcommands: {
             list: {
                 description: "Lists every board in this server you can see, archived ones last.",
