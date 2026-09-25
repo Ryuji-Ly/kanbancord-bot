@@ -1,6 +1,7 @@
 const logger = require("../utils/logger");
 const { upsertMember, syncMemberRoles } = require("../api/syncApi");
 const { mapGuildMember } = require("../services/sync/syncPayloads");
+const { scheduleChannelSync } = require("../services/sync/syncChannels");
 
 /**
  * Returns true if the two members have a different role set.
@@ -19,6 +20,10 @@ module.exports = {
     name: "guildMemberUpdate",
     async execute(oldMember, newMember) {
         const guild = newMember.guild;
+        // The bot's own roles decide which channels it may post in.
+        if (newMember.id === newMember.client.user?.id && rolesChanged(oldMember, newMember)) {
+            scheduleChannelSync(guild);
+        }
 
         try {
             const data = mapGuildMember(newMember);
