@@ -18,7 +18,6 @@ module.exports = {
         ),
 
     info: {
-        description: "Comments are the discussion on a task.",
         subcommands: {
             list: {
                 description: "Shows a task's comments five at a time, newest first.",

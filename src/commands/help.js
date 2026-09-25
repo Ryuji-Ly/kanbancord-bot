@@ -19,7 +19,7 @@ module.exports = {
     async execute(ctx) {
         const command = ctx.interaction.options.getString("command");
         const commands = ctx.client.commands;
-        await ctx.reply(command ? buildHelpDetail(commands, command) : buildHelp(commands));
+        await ctx.reply(command ? buildHelpDetail(commands, command) : buildHelp(commands), { ephemeral: true });
     },
 
     /** @param {import("../utils/interactionContext").InteractionContext} ctx */

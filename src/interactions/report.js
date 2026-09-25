@@ -11,7 +11,7 @@ registerModalHandler("report", async (ctx, { action, args }) => {
     const fields = ctx.interaction.fields;
 
     claimCooldown(ctx.user.id);
-    await ctx.defer();
+    await ctx.defer({ ephemeral: true });
     await deliverReport(ctx.client, {
         kind,
         title: fields.getTextInputValue("title").trim(),
