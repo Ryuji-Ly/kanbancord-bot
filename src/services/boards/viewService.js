@@ -1,7 +1,9 @@
 const { buildBoardList, buildBoardOverview, buildColumnView } = require("../../ui/boardViews");
 const { buildTaskView } = require("../../ui/taskViews");
 const { COMMENT_PAGE_SIZE, buildCommentPage } = require("../../ui/commentViews");
+const { successContainer } = require("../../ui/containers");
 const { UserFacingError } = require("../../utils/errorMessages");
+const { abilitiesOf } = require("./abilities");
 const { getSnapshot, listBoards, resolveBoard, resolveTask, snapshotModel } = require("./boardData");
 
 /**
@@ -19,29 +21,39 @@ async function boardView(ctx, boardInput) {
     return buildBoardOverview(snapshotModel(await getSnapshot(ctx, board.boardId, { fresh: true })));
 }
 
-async function boardViewById(ctx, boardId) {
-    return buildBoardOverview(snapshotModel(await getSnapshot(ctx, boardId, { fresh: true })));
+async function boardViewById(ctx, boardId, notice) {
+    return withNotice(notice, buildBoardOverview(snapshotModel(await getSnapshot(ctx, boardId, { fresh: true }))));
 }
 
-async function columnView(ctx, boardId, columnId, page) {
+async function columnView(ctx, boardId, columnId, page, notice) {
     const model = snapshotModel(await getSnapshot(ctx, boardId, { fresh: true }));
-    return buildColumnView(model, Number(columnId), Number(page) || 0);
+    return withNotice(notice, buildColumnView(model, Number(columnId), Number(page) || 0));
+}
+
+/** The task view for this user, with the changes they may make. */
+function taskViewFor(ctx, snapshot, task) {
+    return buildTaskView(snapshotModel(snapshot), task, { abilities: abilitiesOf(snapshot), userId: ctx.user.id });
+}
+
+/** A short confirmation above a view, after a change. */
+function withNotice(notice, view) {
+    return notice ? [successContainer(null, notice), view] : view;
 }
 
 /** @param {string} taskInput an id from autocomplete, or a typed title */
 async function taskView(ctx, boardInput, taskInput) {
     const board = await resolveBoard(ctx, boardInput);
     const snapshot = await getSnapshot(ctx, board.boardId, { fresh: true });
-    return buildTaskView(snapshotModel(snapshot), resolveTask(snapshot, taskInput));
+    return taskViewFor(ctx, snapshot, resolveTask(snapshot, taskInput));
 }
 
-async function taskViewById(ctx, boardId, taskId) {
-    const model = snapshotModel(await getSnapshot(ctx, boardId, { fresh: true }));
-    const task = model.task(Number(taskId));
+async function taskViewById(ctx, boardId, taskId, notice) {
+    const snapshot = await getSnapshot(ctx, boardId, { fresh: true });
+    const task = snapshotModel(snapshot).task(Number(taskId));
     if (!task) {
         throw new UserFacingError("Task not found", "That task no longer exists, or you can no longer see it.");
     }
-    return buildTaskView(model, task);
+    return withNotice(notice, taskViewFor(ctx, snapshot, task));
 }
 
 /** A page of comments, newest first. */
@@ -77,6 +89,7 @@ async function commentViewFor(ctx, boardInput, taskInput) {
 }
 
 module.exports = {
+    withNotice,
     boardListView,
     boardView,
     boardViewById,
