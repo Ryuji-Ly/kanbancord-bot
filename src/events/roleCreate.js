@@ -1,10 +1,10 @@
 const logger = require("../utils/logger");
-const { upsertRole } = require("../services/internalSyncApi");
-const { mapGuildRole } = require("../utils/syncPayloads");
+const { upsertRole } = require("../api/syncApi");
+const { mapGuildRole } = require("../services/sync/syncPayloads");
 
 module.exports = {
     name: "roleCreate",
-    async execute(role, client) {
+    async execute(role) {
         if (role.managed) return; // ignore bot/integration roles
 
         try {
