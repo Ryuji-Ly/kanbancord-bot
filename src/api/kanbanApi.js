@@ -4,7 +4,8 @@ const { request } = require("./httpClient");
 /**
  * The KanbanCord API as a particular Discord user, from a command they ran in a server. The API
  * checks this user's permissions exactly as it would on the website; the bot decides nothing
- * itself. Only paths under `/api/servers/{guildId}` for that same server are allowed.
+ * itself. Only paths under `/api/servers/{guildId}` for that same server are allowed, and the user's
+ * own notification settings.
  *
  * @param {{ userId: string, guildId: string }} actor
  */
@@ -27,6 +28,11 @@ function forUser({ userId, guildId }) {
         put: call("PUT"),
         patch: call("PATCH"),
         delete: call("DELETE"),
+        /** The user's own notification settings: the one thing outside the server the bot may touch. */
+        myNotifications: {
+            get: () => request("/api/me/notifications", { headers }),
+            update: (changes) => request("/api/me/notifications", { method: "PUT", headers, body: changes }),
+        },
     };
 }
 
