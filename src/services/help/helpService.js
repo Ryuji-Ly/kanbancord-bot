@@ -1,5 +1,5 @@
 const { ActionRowBuilder, ApplicationCommandOptionType, ButtonBuilder, ButtonStyle } = require("discord.js");
-const { webAppUrl } = require("../../config/env");
+const { webAppUrl, supportServerUrl } = require("../../config/env");
 const { buildContainer, appendDivider, appendText, appendFooter } = require("../../ui/containers");
 const { UserFacingError } = require("../../utils/errorMessages");
 
@@ -72,9 +72,10 @@ function buildHelp(commands) {
     container.addActionRowComponents(
         new ActionRowBuilder().addComponents(
             new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Open KanbanCord").setURL(webAppUrl),
+            new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Support server").setURL(supportServerUrl),
         ),
     );
-    return appendFooter(container, `${LEGEND} · /help <command> for details · Found a problem? Use /report.`);
+    return appendFooter(container, `${LEGEND} · /help <command> for details · Found a problem? Use /report or ask in the support server.`);
 }
 
 /** Details for one command (`board view`) or a command with subcommands (`board`). */

@@ -36,6 +36,8 @@ module.exports = {
     internalSyncToken: optional("KANBANCORD_INTERNAL_SYNC_TOKEN"),
     /** The website, for links in replies. */
     webAppUrl: optional("KANBANCORD_WEB_URL", "https://kanbancord.com").replace(/\/+$/, ""),
+    /** An invite to the KanbanCord support server, linked from /help. */
+    supportServerUrl: optional("KANBANCORD_SUPPORT_URL", "https://discord.gg/SDr4ujFPGR"),
     /** Who receives /report submissions, by DM. */
     devUserIds: idList("KANBANCORD_DEV_USER_IDS"),
 };
