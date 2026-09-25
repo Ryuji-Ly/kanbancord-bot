@@ -50,6 +50,7 @@ npm run dev
 | `KANBANCORD_API_BASE_URL` | Where the API runs. Defaults to `http://localhost:8080`. |
 | `KANBANCORD_INTERNAL_SYNC_TOKEN` | The shared secret the API expects from the bot. |
 | `KANBANCORD_WEB_URL` | The website, for "Open on website" links. Defaults to `https://kanbancord.com`. |
+| `KANBANCORD_SUPPORT_URL` | The support server invite linked from `/help`. Defaults to the KanbanCord support server. |
 | `KANBANCORD_DEV_USER_IDS` | Optional: Discord user IDs that receive `/report` submissions. |
 
 ```bash
