@@ -1,6 +1,7 @@
 const logger = require("../../utils/logger");
 const { bootstrapServer } = require("../../api/syncApi");
 const { buildServerPayload, mapGuildMember, mapGuildRole } = require("./syncPayloads");
+const { syncChannels } = require("./syncChannels");
 
 /**
  * Fetches every member in a guild, paginating in chunks of 1000.
@@ -53,10 +54,11 @@ async function syncGuild(guild) {
     };
 
     await bootstrapServer({ serverId: guild.id, data: payload });
+    const channelCount = await syncChannels(guild);
 
     const elapsed = ((Date.now() - start) / 1000).toFixed(2);
     logger.info(
-        `[SyncGuild] "${guild.name}" synced in ${elapsed}s — ${roleEntries.length} roles, ${memberEntries.length} members`,
+        `[SyncGuild] "${guild.name}" synced in ${elapsed}s — ${roleEntries.length} roles, ${memberEntries.length} members, ${channelCount} channels`,
     );
 
     return { roleCount: roleEntries.length, memberCount: memberEntries.length };
