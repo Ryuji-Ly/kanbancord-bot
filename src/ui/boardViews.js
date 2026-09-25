@@ -1,8 +1,17 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require("discord.js");
+const {
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    LabelBuilder,
+    ModalBuilder,
+    StringSelectMenuBuilder,
+    TextInputBuilder,
+    TextInputStyle,
+} = require("discord.js");
 const { webAppUrl } = require("../config/env");
 const { encode } = require("../utils/customId");
 const { discordTime, fitLines, parseServerTime, plain, truncate } = require("../utils/format");
-const { appendDivider, appendFooter, appendText, buildContainer } = require("./containers");
+const { appendDivider, appendFooter, appendText, buildContainer, warningContainer } = require("./containers");
 
 /** Tasks shown per column on the board overview, and per page in a column. */
 const OVERVIEW_TASKS_PER_COLUMN = 5;
@@ -155,8 +164,47 @@ function buildColumnView(model, columnId, page) {
     return container;
 }
 
+/** Asks before deleting a column, saying how many tasks go with it. */
+function columnDeletePanel(boardId, column, taskCount) {
+    const tasks = taskCount > 0 ? ` and its ${taskCount} task${taskCount === 1 ? "" : "s"}` : "";
+    const container = warningContainer(
+        "Delete this column?",
+        `**${plain(column.name, 60)}**${tasks} will be deleted for everyone. This cannot be undone.`,
+    );
+    container.addActionRowComponents(new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId(encode("col", "delete", boardId, column.columnId))
+            .setStyle(ButtonStyle.Danger)
+            .setLabel("Delete column"),
+        new ButtonBuilder()
+            .setCustomId(encode("board", "open", boardId))
+            .setStyle(ButtonStyle.Secondary)
+            .setLabel("Cancel"),
+    ));
+    return container;
+}
+
+function boardEditModal(board) {
+    const name = new TextInputBuilder()
+        .setCustomId("name").setStyle(TextInputStyle.Short).setMaxLength(100).setRequired(true).setValue(board.name);
+    const description = new TextInputBuilder()
+        .setCustomId("description").setStyle(TextInputStyle.Paragraph).setMaxLength(500).setRequired(false);
+    if (board.description) {
+        description.setValue(board.description);
+    }
+    return new ModalBuilder()
+        .setCustomId(encode("brd", "edit", board.boardId))
+        .setTitle("Edit board")
+        .addLabelComponents(
+            new LabelBuilder().setLabel("Name").setTextInputComponent(name),
+            new LabelBuilder().setLabel("Description").setTextInputComponent(description),
+        );
+}
+
 module.exports = {
     COLUMN_PAGE_SIZE,
+    columnDeletePanel,
+    boardEditModal,
     boardUrl,
     linkButton,
     buildBoardList,

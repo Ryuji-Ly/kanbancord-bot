@@ -3,12 +3,18 @@ const { encode } = require("../utils/customId");
 const { describeMarkdown, discordTime, parseServerTime, plain, truncate } = require("../utils/format");
 const { appendDivider, appendFooter, appendText, buildContainer } = require("./containers");
 const { boardUrl, linkButton } = require("./boardViews");
+const { actionsRow } = require("./taskPanels");
 
 /** Discord shows at most 10 items in a gallery. */
 const MAX_MEDIA = 10;
 
-/** /task view: every field the board has switched on, the description, and its images. */
-function buildTaskView(model, task) {
+/**
+ * /task view: every field the board has switched on, the description, and its images. With
+ * `abilities`, a menu offers the changes the viewer may make.
+ *
+ * @param {{ abilities?: object, userId?: string }} [viewer]
+ */
+function buildTaskView(model, task, { abilities, userId } = {}) {
     const { board, features } = model;
     const column = model.column(task.columnId);
     const container = buildContainer({ title: plain(task.title, 200) });
@@ -85,6 +91,10 @@ function buildTaskView(model, task) {
             .setLabel(`Back to ${column.name}`.slice(0, 80)));
     }
     buttons.push(linkButton("Open on website", boardUrl(board, task.taskId)));
+    const actions = abilities ? actionsRow(model, task, abilities, userId) : null;
+    if (actions) {
+        container.addActionRowComponents(actions);
+    }
     container.addActionRowComponents(new ActionRowBuilder().addComponents(buttons));
     return container;
 }
