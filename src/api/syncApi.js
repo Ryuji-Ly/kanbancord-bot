@@ -88,6 +88,15 @@ function deleteMember({ serverId, userId }) {
     });
 }
 
+/** The server's text channels, complete: channels left out are removed. */
+function replaceChannels({ serverId, channels }) {
+    return request(`/api/internal/sync/servers/${serverId}/channels`, {
+        method: "PUT",
+        headers: syncHeaders(),
+        body: channels,
+    });
+}
+
 function markServerNotPresent({ serverId }) {
     return request(`/api/internal/sync/servers/${serverId}/presence`, {
         method: "DELETE",
@@ -105,4 +114,5 @@ module.exports = {
     deleteRole,
     deleteMember,
     markServerNotPresent,
+    replaceChannels,
 };

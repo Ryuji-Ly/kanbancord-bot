@@ -1,9 +1,12 @@
 const logger = require("../utils/logger");
+const { scheduleChannelSync } = require("../services/sync/syncChannels");
 const { deleteRole } = require("../api/syncApi");
 
 module.exports = {
     name: "roleDelete",
     async execute(role) {
+        // A role change can change which channels the bot may post in.
+        scheduleChannelSync(role.guild);
         if (role.managed) return;
 
         try {

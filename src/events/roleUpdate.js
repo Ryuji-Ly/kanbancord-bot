@@ -1,10 +1,13 @@
 const logger = require("../utils/logger");
+const { scheduleChannelSync } = require("../services/sync/syncChannels");
 const { upsertRole } = require("../api/syncApi");
 const { mapGuildRole } = require("../services/sync/syncPayloads");
 
 module.exports = {
     name: "roleUpdate",
     async execute(oldRole, newRole) {
+        // A role change can change which channels the bot may post in.
+        scheduleChannelSync(newRole.guild);
         if (newRole.managed) return;
 
         try {
