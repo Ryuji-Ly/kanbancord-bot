@@ -39,11 +39,13 @@ function upsertMember({ serverId, userId, data }) {
     });
 }
 
+/** A whole server at once: for large servers this takes a while, so it may take up to three minutes. */
 function bootstrapServer({ serverId, data }) {
     return request(`/api/internal/sync/servers/${serverId}/bootstrap`, {
         method: "POST",
         headers: syncHeaders(),
         body: data,
+        timeoutMs: 180_000,
     });
 }
 
