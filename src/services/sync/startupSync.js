@@ -28,7 +28,12 @@ async function runStartupSync(client) {
     const currentGuildIds = new Set(guilds.map((guild) => guild.id));
     logger.info(`[StartupSync] Bot is in ${guilds.length} guild(s)`);
 
-    const staleServerIds = [...knownIds].filter((serverId) => !currentGuildIds.has(serverId));
+    // Each shard only sees its own servers, so with several shards "not in this shard" does not mean
+    // the bot left; only a single shard can tell which servers the bot is no longer in.
+    const shardCount = client.shard?.count ?? 1;
+    const staleServerIds = shardCount === 1
+        ? [...knownIds].filter((serverId) => !currentGuildIds.has(serverId))
+        : [];
     for (const serverId of staleServerIds) {
         try {
             await markServerNotPresent({ serverId });
@@ -67,6 +72,7 @@ async function runStartupSync(client) {
     }
 
     logger.info(`[StartupSync] Complete — ${results.success} succeeded, ${results.failed} failed`);
+    return results;
 }
 
 module.exports = { runStartupSync };

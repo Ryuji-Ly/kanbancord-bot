@@ -1,6 +1,6 @@
 const { ActivityType } = require("discord.js");
 const logger = require("../utils/logger");
-const { runStartupSync } = require("../services/sync/startupSync");
+const { startSyncSchedule } = require("../services/sync/syncScheduler");
 
 module.exports = {
     name: "clientReady",
@@ -18,9 +18,7 @@ module.exports = {
             ],
         });
 
-        // Run in background — don't block the ready handler
-        runStartupSync(client).catch((error) => {
-            logger.error(`[StartupSync] Unhandled error: ${error.message}`);
-        });
+        // In the background: waits for the API if it is still starting, then keeps a regular re-sync.
+        startSyncSchedule(client);
     },
 };
