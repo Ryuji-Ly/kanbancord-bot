@@ -7,12 +7,14 @@ const { UserFacingError } = require("../../utils/errorMessages");
  * /help, built from the loaded commands so it never lists one that does not exist. Each command
  * describes itself in `info`:
  *
- *   info: {
+ *   info: {                                // a command without subcommands
  *     description: "What the command is for.",
  *     examples: ["/report type:Issue"],      // optional
  *     notes: "Anything worth knowing.",      // optional
- *     subcommands: { view: { description, examples, notes } },  // for commands with subcommands
  *   }
+ *   info: { subcommands: { view: { description, examples, notes } } }  // one with subcommands
+ *
+ * A command with subcommands cannot be run on its own, so only its subcommands are listed.
  *
  * Usage lines are generated from the options, so they always match: <required> and [optional].
  */
@@ -47,10 +49,6 @@ function usageOf(entry) {
     return [`/${entry.path}`, ...options].join(" ");
 }
 
-function commandInfo(commands, name) {
-    return commands.get(name)?.info ?? {};
-}
-
 /** The overview: each command with a line per subcommand. */
 function buildHelp(commands) {
     const container = buildContainer({
@@ -60,14 +58,15 @@ function buildHelp(commands) {
     });
     appendDivider(container);
 
+    // A command with subcommands cannot be run on its own, so only the subcommands are listed,
+    // grouped by the command they belong to.
     const entries = listEntries(commands);
     const parents = [...new Set(entries.map((entry) => entry.parent))];
-    const blocks = parents.map((parent) => {
-        const own = entries.filter((entry) => entry.parent === parent);
-        const lines = own.map((entry) => `\`${usageOf(entry)}\` — ${entry.json.description}`);
-        const about = own.length > 1 ? commandInfo(commands, parent).description : null;
-        return [about ? `**/${parent}** — ${about}` : null, ...lines].filter(Boolean).join("\n");
-    });
+    const blocks = parents.map((parent) =>
+        entries
+            .filter((entry) => entry.parent === parent)
+            .map((entry) => `\`${usageOf(entry)}\` — ${entry.json.description}`)
+            .join("\n"));
     appendText(container, blocks.join("\n\n"));
 
     container.addActionRowComponents(
@@ -86,13 +85,10 @@ function buildHelpDetail(commands, path) {
 
     if (!entry) {
         const own = entries.filter((candidate) => candidate.parent === wanted);
-        if (own.length === 0) {
-            throw new UserFacingError("No such command", `There is no /${wanted}. Run /help to see every command.`);
-        }
-        const container = buildContainer({ title: `/${wanted}`, body: commandInfo(commands, wanted).description });
-        appendDivider(container);
-        appendText(container, own.map((sub) => `\`${usageOf(sub)}\` — ${sub.info.description ?? sub.json.description}`).join("\n"));
-        return appendFooter(container, `${LEGEND} · /help ${wanted} <subcommand> for details`);
+        const suggestion = own.length > 0
+            ? ` /${wanted} is always used with one of: ${own.map((sub) => `/${sub.path}`).join(", ")}.`
+            : " Run /help to see every command.";
+        throw new UserFacingError("No such command", `There is no /${wanted} on its own.${suggestion}`);
     }
 
     const container = buildContainer({ title: `/${entry.path}`, body: entry.info.description ?? entry.json.description });
@@ -118,8 +114,8 @@ function buildHelpDetail(commands, path) {
 function helpChoices(commands, typed) {
     const query = String(typed ?? "").trim().replace(/^\//, "").toLowerCase();
     const entries = listEntries(commands);
-    const paths = [...new Set([...entries.map((entry) => entry.parent), ...entries.map((entry) => entry.path)])].sort();
-    return paths
+    return entries
+        .map((entry) => entry.path)
         .filter((candidate) => candidate.includes(query))
         .slice(0, 25)
         .map((candidate) => ({ name: `/${candidate}`, value: candidate }));

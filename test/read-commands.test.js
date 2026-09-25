@@ -3,7 +3,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const { Collection, MessageFlags } = require("discord.js");
+const { Collection } = require("discord.js");
 
 const { snapshotFixture, textLength } = require("./fixtures");
 const { parseServerTime, describeMarkdown, fitLines, plain } = require("../src/utils/format");
@@ -26,9 +26,6 @@ function loadCommands() {
 
 test("every command and subcommand explains itself for /help", () => {
     const commands = loadCommands();
-    for (const [name, command] of commands) {
-        assert.ok(command.info?.description, `/${name} has info.description`);
-    }
     for (const entry of listEntries(commands)) {
         assert.ok(entry.info.description, `/${entry.path} has a description in info`);
         for (const example of entry.info.examples ?? []) {
@@ -47,9 +44,12 @@ test("usage lines come from the options: <required> and [optional]", () => {
     assert.equal(usageOf(byPath.get("help")), "/help [command]");
     assert.equal(usageOf(byPath.get("report")), "/report <type>");
     assert.ok(JSON.stringify(buildHelpDetail(commands, "/Board  View").toJSON()).includes("/board view <board>"));
-    assert.ok(JSON.stringify(buildHelpDetail(commands, "board").toJSON()).includes("/board list"));
+    assert.throws(() => buildHelpDetail(commands, "board"), /always used with one of: \/board list, \/board view/);
     assert.throws(() => buildHelpDetail(commands, "nope"), /There is no \/nope/);
-    assert.deepEqual(helpChoices(commands, "board").map((choice) => choice.value), ["board", "board list", "board view"]);
+    assert.deepEqual(helpChoices(commands, "board").map((choice) => choice.value), ["board list", "board view"],
+        "commands with subcommands cannot be run alone, so they are not offered");
+    const overview = JSON.stringify(buildHelp(commands).toJSON());
+    assert.ok(!overview.includes("**/board**"));
 });
 
 test("formatting: server times are UTC, descriptions lose their media to a gallery, text is budgeted", () => {
@@ -144,7 +144,7 @@ test("comment pages show authors by name and page newest first", () => {
     assert.ok(text.includes("page 1 of 3") && text.includes("1 image or video"));
 });
 
-test("/board view runs as the user who asked, and replies only to them", async () => {
+test("/board view runs as the user who asked, and replies for the channel to see", async () => {
     const interactionCreate = require("../src/events/interactionCreate");
     const calls = [];
     const originalFetch = global.fetch;
@@ -183,7 +183,7 @@ test("/board view runs as the user who asked, and replies only to them", async (
         global.fetch = originalFetch;
     }
 
-    assert.equal(replies[0].options.flags, MessageFlags.Ephemeral);
+    assert.equal(replies[0].options.flags, undefined, "board views are visible to the channel");
     assert.equal(replies.at(-1).type, "edit", JSON.stringify(replies.at(-1)));
     assert.ok(JSON.stringify(replies.at(-1).payload.components[0].toJSON()).includes("Sprint"));
     for (const call of calls) {

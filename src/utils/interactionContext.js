@@ -35,27 +35,47 @@ class InteractionContext {
         return this._api;
     }
 
-    /** Acknowledges now and answers later, for anything that calls the API. */
-    async defer({ ephemeral = true } = {}) {
+    /**
+     * Acknowledges now and answers later, for anything that calls the API. Replies are visible to
+     * the channel unless asked otherwise; errors are always only shown to the user.
+     */
+    async defer({ ephemeral = false } = {}) {
         if (this.interaction.deferred || this.interaction.replied) {
             return;
         }
         await this.interaction.deferReply({ flags: ephemeral ? MessageFlags.Ephemeral : undefined });
     }
 
-    /** Acknowledges a button or menu now, to replace its message later. */
+    /**
+     * Whether the user clicking a button or menu is the one the message was made for. Someone else
+     * clicking must not change it for everyone: they get their own copy, only visible to them.
+     */
+    isMessageOwner() {
+        const owner = this.interaction.message?.interactionMetadata?.user?.id;
+        return !owner || owner === this.user.id;
+    }
+
+    /**
+     * Acknowledges a button or menu now, to replace its message later; or, for someone other than
+     * the message's owner, to answer them privately instead.
+     */
     async deferUpdate() {
         if (this.interaction.deferred || this.interaction.replied) {
             return;
         }
-        await this.interaction.deferUpdate();
+        if (this.isMessageOwner()) {
+            await this.interaction.deferUpdate();
+        } else {
+            this.privateUpdate = true;
+            await this.interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        }
     }
 
     /**
      * Sends the response, or replaces it if one was already sent or deferred. A deferred reply keeps
      * the visibility it was deferred with.
      */
-    async reply(containers, { ephemeral = true } = {}) {
+    async reply(containers, { ephemeral = false } = {}) {
         const payload = v2Payload(containers, { ephemeral });
         if (this.interaction.deferred || this.interaction.replied) {
             // Ephemerality is fixed when a reply is first sent; editReply rejects the flag.
@@ -65,9 +85,15 @@ class InteractionContext {
         return this.interaction.reply(payload);
     }
 
-    /** Replaces the message a button or menu belongs to. */
+    /**
+     * Replaces the message a button or menu belongs to, or answers privately when someone other than
+     * its owner clicked (see deferUpdate).
+     */
     async update(containers) {
         const payload = v2Payload(containers);
+        if (!this.privateUpdate && !this.interaction.deferred && !this.interaction.replied && !this.isMessageOwner()) {
+            return this.interaction.reply(v2Payload(containers, { ephemeral: true }));
+        }
         if (this.interaction.deferred || this.interaction.replied) {
             return this.interaction.editReply(payload);
         }
