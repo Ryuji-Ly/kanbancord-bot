@@ -9,7 +9,7 @@ This is the Discord bot. The website, where you can see whole boards at a glance
 
 - **Add it to your server:** use "Add to Discord" at the bottom of [kanbancord.com](https://kanbancord.com).
 - **Help:** run `/help` in Discord, or read the [FAQ](https://kanbancord.com/faq).
-- **Found a bug or have an idea?** Use `/report` in Discord.
+- **Questions, bugs or ideas?** Join the [support server](https://discord.gg/SDr4ujFPGR), or use `/report` in Discord.
 - **Support the project:** [kanbancord.com/support](https://kanbancord.com/support).
 
 ## Commands
