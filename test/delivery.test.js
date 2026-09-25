@@ -87,7 +87,7 @@ test("a feed post pings exactly the people the plan says, and names the rest wit
     const text = JSON.stringify(payload.components[0].toJSON());
     assert.ok(text.includes("### Fix login") && text.includes("-# Sprint"));
     assert.ok(text.includes(`assigned <@${MIA}>`));
-    assert.ok(text.includes(`\"<@${MAX}>\"`), "someone to ping who is not named in the lines is added on their own");
+    assert.ok(text.includes(`"<@${MAX}>"`), "someone to ping who is not named in the lines is added on their own");
     assert.ok(!text.includes(`<@${MIA}> <@${MAX}>`), "people already named are not added twice");
     assert.ok(text.includes("https://kanbancord.com/boards/1?serverId=999&task=100"));
 });
