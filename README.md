@@ -56,6 +56,7 @@ npm run dev
 | `KANBANCORD_WEB_URL` | The website, for "Open on website" links. Defaults to `https://kanbancord.com`. |
 | `KANBANCORD_SUPPORT_URL` | The support server invite linked from `/help`. Defaults to the KanbanCord support server. |
 | `KANBANCORD_DEV_USER_IDS` | Optional: Discord user IDs that receive `/report` submissions. |
+| `BOTBOARD_TOKEN`, `DISCORDBOTLIST_TOKEN` | Optional: tokens from bot-listing sites, to keep their server count current. |
 
 ```bash
 npm run lint
