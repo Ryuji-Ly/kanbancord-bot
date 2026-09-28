@@ -3,6 +3,7 @@ const logger = require("../utils/logger");
 const { startSyncSchedule } = require("../services/sync/syncScheduler");
 const { startDeliveryWorker } = require("../delivery/deliveryWorker");
 const { startPostWorker } = require("../delivery/postWorker");
+const { startListingStats } = require("../services/listings/listingStats");
 
 module.exports = {
     name: "clientReady",
@@ -29,6 +30,7 @@ module.exports = {
         if (!client.shard || client.shard.ids.includes(0)) {
             startDeliveryWorker(client);
             startPostWorker(client);
+            startListingStats(client);
         }
     },
 };
