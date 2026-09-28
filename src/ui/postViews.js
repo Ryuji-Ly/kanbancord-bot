@@ -2,16 +2,13 @@ const {
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
-    LabelBuilder,
-    ModalBuilder,
     StringSelectMenuBuilder,
-    TextInputBuilder,
-    TextInputStyle,
 } = require("discord.js");
 const { encode } = require("../utils/customId");
 const { discordTime, fitLines, plain, truncate } = require("../utils/format");
 const { boardUrl, linkButton, taskLine } = require("./boardViews");
 const { appendDivider, appendFooter, appendText, buildContainer, infoContainer, warningContainer } = require("./containers");
+const { newTaskModal } = require("./taskForm");
 const { COLORS } = require("./theme");
 
 /**
@@ -25,7 +22,6 @@ const TASKS_PER_COLUMN = 10;
 const TEXT_BUDGET = 3300;
 /** Discord's limit on options in a menu. */
 const MENU_MAX = 25;
-const TITLE_MAX = 200;
 
 /** The board as a post shows it, with menus to open a column or a task and a button to add one. */
 function buildBoardPost(model, { now = new Date() } = {}) {
@@ -106,28 +102,11 @@ function buildDeletedPost() {
 }
 
 /**
- * The new-task form from a post: the title, the description, and which column it goes in, since a
+ * The new-task form from a post: like /task create's, and asking which column it goes in, since a
  * post is not about one column.
  */
 function postTaskModal(model) {
-    const columns = model.columns.slice(0, MENU_MAX);
-    return new ModalBuilder()
-        .setCustomId(encode("post", "create", model.board.boardId))
-        .setTitle(truncate(`New task · ${model.board.name}`, 45))
-        .addLabelComponents(
-            new LabelBuilder().setLabel("Title").setTextInputComponent(new TextInputBuilder()
-                .setCustomId("title").setStyle(TextInputStyle.Short).setMaxLength(TITLE_MAX).setRequired(true)),
-            new LabelBuilder().setLabel("Description").setTextInputComponent(new TextInputBuilder()
-                .setCustomId("description").setStyle(TextInputStyle.Paragraph).setMaxLength(4000).setRequired(false)),
-            new LabelBuilder().setLabel("Column").setStringSelectMenuComponent(new StringSelectMenuBuilder()
-                .setCustomId("column")
-                .setRequired(true)
-                .addOptions(columns.map((column, index) => ({
-                    label: truncate(column.name, 100),
-                    value: String(column.columnId),
-                    default: index === 0,
-                })))),
-        );
+    return newTaskModal({ customId: encode("post", "create", model.board.boardId), model, chooseColumn: true });
 }
 
 /**

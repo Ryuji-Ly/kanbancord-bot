@@ -1,5 +1,5 @@
 const { UserFacingError } = require("../../utils/errorMessages");
-const { toServerTime } = require("../../utils/dueDate");
+const { parseDue, toServerTime } = require("../../utils/dueDate");
 const { parseServerTime } = require("../../utils/format");
 const { forgetBoard, getSnapshot, snapshotModel } = require("./boardData");
 
@@ -44,16 +44,49 @@ async function after(ctx, boardId, result) {
     return result;
 }
 
-async function createTask(ctx, boardId, columnId, { title, description }) {
+/**
+ * Creates a task, with whatever else the form asked for: a priority and due date go with it, people
+ * and labels are added after. A due date that cannot be understood, or someone who cannot be
+ * assigned, does not stop the task being created; the reply says what was left out.
+ *
+ * @param {{ title: string, description?: string, priorityId?: string, due?: string, people?: string[],
+ *   labelIds?: string[] }} fields
+ */
+async function createTask(ctx, boardId, columnId, { title, description, priorityId, due, people, labelIds }) {
+    const notes = [];
+    let dueDate = null;
+    if (due) {
+        try {
+            const parsed = parseDue(due);
+            dueDate = parsed ? toServerTime(parsed) : null;
+        } catch {
+            notes.push(`"${due}" is not a date I understand, so no due date was set. Set one with \`/task due\`.`);
+        }
+    }
     const task = await ctx.api.post(`/boards/${boardId}/tasks`, {
         body: {
             title: title.trim().slice(0, TITLE_MAX),
             description: description?.trim() || null,
             boardId: Number(boardId),
             columnId: Number(columnId),
+            priorityId: priorityId ? Number(priorityId) : null,
+            dueDate,
         },
     });
-    return after(ctx, boardId, { taskId: task.taskId, notice: `Created **${task.title}**` });
+    if (people?.length > 0) {
+        const result = await setAssignees(ctx, boardId, task.taskId, people);
+        if (result.notice.startsWith("Some changes")) {
+            notes.push(result.notice);
+        }
+    }
+    if (labelIds?.length > 0) {
+        const result = await setLabels(ctx, boardId, task.taskId, labelIds);
+        if (result.notice.startsWith("Some changes")) {
+            notes.push(result.notice);
+        }
+    }
+    const notice = [`Created **${task.title}**`, ...notes].join("\n");
+    return after(ctx, boardId, { taskId: task.taskId, notice });
 }
 
 async function editTask(ctx, boardId, taskId, { title, description }) {

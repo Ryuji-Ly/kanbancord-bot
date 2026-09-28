@@ -173,6 +173,5 @@ test("every panel and form is valid for Discord", () => {
     const long = panels.editTaskModal(1, { ...task, description: "x".repeat(4001) }).toJSON();
     assert.equal(long.components.length, 1, "a description too long for the form is left out rather than cut short");
     assert.equal(panels.dueModal(1, task).toJSON().components[0].component.value, "2030-01-01 09:00");
-    panels.createTaskModal(1, 10).toJSON();
     panels.commentModal(1, 100).toJSON();
 });

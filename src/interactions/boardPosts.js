@@ -6,6 +6,7 @@ const { columnView, taskViewById } = require("../services/boards/viewService");
 const { infoContainer } = require("../ui/containers");
 const { postTaskModal, postedNotice } = require("../ui/postViews");
 const { UserFacingError } = require("../utils/errorMessages");
+const { readNewTask } = require("../ui/taskForm");
 
 /**
  * Everything on a board post, and the question asked before posting one. A post belongs to the whole
@@ -54,12 +55,8 @@ registerModalHandler("post", async (ctx, { action, args }) => {
     if (action !== "create") {
         throw new UserFacingError("Not available", "That form is not available here.");
     }
-    const fields = ctx.interaction.fields;
-    const [columnId] = fields.getStringSelectValues("column");
+    const form = readNewTask(ctx.interaction.fields);
     await ctx.defer({ ephemeral: true });
-    const result = await actions.createTask(ctx, boardId, columnId, {
-        title: fields.getTextInputValue("title"),
-        description: fields.getTextInputValue("description"),
-    });
+    const result = await actions.createTask(ctx, boardId, form.columnId, form);
     await ctx.reply(await taskViewById(ctx, boardId, result.taskId, result.notice));
 });
