@@ -42,6 +42,19 @@ const warningContainer = notice(COLORS.warning);
 const infoContainer = notice(COLORS.info);
 
 /**
+ * How many components a message has, nested ones included; Discord allows 40.
+ * @param {Array<{ toJSON?: Function }>} containers builders or their JSON
+ */
+function componentCount(containers) {
+    const count = (json) => (json.components ?? []).reduce((sum, child) => sum + 1 + count(child), 0)
+        + (json.items ?? []).length + (json.accessory ? 1 : 0);
+    return containers.reduce((sum, container) => {
+        const json = typeof container.toJSON === "function" ? container.toJSON() : container;
+        return sum + 1 + count(json);
+    }, 0);
+}
+
+/**
  * The message payload for containers.
  * @param {ContainerBuilder | ContainerBuilder[]} containers
  * @param {{ ephemeral?: boolean }} [options]
@@ -69,5 +82,6 @@ module.exports = {
     errorContainer,
     warningContainer,
     infoContainer,
+    componentCount,
     v2Payload,
 };

@@ -43,9 +43,9 @@ async function setAuditChannel(ctx, channelId) {
  * A feed for a channel with the default events, for every board or one. Its details are changed on
  * the website.
  */
-async function addFeed(ctx, channelId, boardInput) {
+async function addFeed(ctx, channelId, boardInput, interactive = true) {
     const board = boardInput ? await resolveBoard(ctx, boardInput) : null;
-    await ctx.api.post("/notifications/feeds", { body: { channelId, boardIds: board ? [board.boardId] : [] } });
+    await ctx.api.post("/notifications/feeds", { body: { channelId, boardIds: board ? [board.boardId] : [], interactive } });
     return board;
 }
 

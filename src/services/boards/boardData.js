@@ -125,6 +125,7 @@ function snapshotModel(snapshot) {
     const assignmentsOf = (task) => snapshot.assignments.filter((assignment) => assignment.taskId === task.taskId);
     const roleAssignmentsOf = (task) => (snapshot.roleAssignments ?? []).filter((role) => role.taskId === task.taskId);
     const taskLabelsOf = (task) => snapshot.taskLabels.filter((taskLabel) => taskLabel.taskId === task.taskId);
+    const followed = new Set((snapshot.followedTaskIds ?? []).map(Number));
 
     return {
         board: snapshot.board,
@@ -155,6 +156,8 @@ function snapshotModel(snapshot) {
                 : [],
         assigneesOf: (task) => (features.ASSIGNEES ? assignmentsOf(task).map((a) => String(a.userId)) : []),
         rolesOf: (task) => (features.ASSIGNEES ? roleAssignmentsOf(task).map((r) => String(r.roleId)) : []),
+        /** Whether the person who loaded the board follows the task. */
+        isFollowing: (task) => followed.has(Number(task.taskId)),
     };
 }
 

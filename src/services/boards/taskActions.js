@@ -178,6 +178,19 @@ function summarise(what, changes, failures) {
     return changes === 0 ? `No changes to ${what}` : `Updated ${what}`;
 }
 
+/** Follows or unfollows the task, for the person asking. */
+async function setFollowing(ctx, boardId, taskId, follow) {
+    const task = requireTask(await currentModel(ctx, boardId), taskId);
+    const path = `/boards/${boardId}/tasks/${task.taskId}/follow`;
+    await (follow ? ctx.api.put(path) : ctx.api.delete(path));
+    return after(ctx, boardId, {
+        taskId: task.taskId,
+        notice: follow
+            ? `You are following **${task.title}**: you will hear about changes by direct message`
+            : `You no longer follow **${task.title}**`,
+    });
+}
+
 async function deleteTask(ctx, boardId, taskId) {
     const model = await currentModel(ctx, boardId);
     const task = requireTask(model, taskId);
@@ -274,6 +287,7 @@ module.exports = {
     setAssignees,
     setRoles,
     setLabels,
+    setFollowing,
     deleteTask,
     addComment,
     addColumn,

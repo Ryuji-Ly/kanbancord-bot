@@ -9,12 +9,10 @@ const { actionsRow } = require("./taskPanels");
 const MAX_MEDIA = 10;
 
 /**
- * /task view: every field the board has switched on, the description, and its images. With
- * `abilities`, a menu offers the changes the viewer may make.
- *
- * @param {{ abilities?: object, userId?: string }} [viewer]
+ * A task's card: every field the board has switched on, the description and its images, and who
+ * made it. No controls: the task view and interactive feed posts each add their own.
  */
-function buildTaskView(model, task, { abilities, userId } = {}) {
+function buildTaskCard(model, task) {
     const { board, features } = model;
     const column = model.column(task.columnId);
     const container = buildContainer({ title: plain(task.title, 200) });
@@ -76,6 +74,18 @@ function buildTaskView(model, task, { abilities, userId } = {}) {
     if (meta.length > 0) {
         appendFooter(container, meta.join(" · "));
     }
+    return container;
+}
+
+/**
+ * /task view: the task's card, and with `abilities`, a menu of the changes the viewer may make.
+ *
+ * @param {{ abilities?: object, userId?: string }} [viewer]
+ */
+function buildTaskView(model, task, { abilities, userId } = {}) {
+    const { board, features } = model;
+    const column = model.column(task.columnId);
+    const container = buildTaskCard(model, task);
 
     const buttons = [];
     if (features.COMMENTS) {
@@ -99,4 +109,4 @@ function buildTaskView(model, task, { abilities, userId } = {}) {
     return container;
 }
 
-module.exports = { buildTaskView };
+module.exports = { buildTaskCard, buildTaskView };

@@ -64,6 +64,12 @@ function taskActions(model, task, abilities, userId) {
     if (abilities.comment) {
         actions.push({ value: "comment", label: "Add a comment" });
     }
+    // Anyone who can see the task may follow it; only the person the view is for can be asked.
+    if (userId) {
+        actions.push(model.isFollowing(task)
+            ? { value: "unfollow", label: "Unfollow" }
+            : { value: "follow", label: "Follow: hear about changes by direct message" });
+    }
     if (abilities.deleteTask) {
         actions.push({ value: "delete", label: "Delete task" });
     }
@@ -198,9 +204,10 @@ function textInput(id, { style = TextInputStyle.Short, max, value, required = tr
  * Title and description. A description longer than a form can hold is left out, so saving the form
  * can never cut it short; it can still be edited on the website.
  */
-function editTaskModal(boardId, task) {
+/** @param {string} [feature] whose handler receives the form: the task view's, or a feed post's */
+function editTaskModal(boardId, task, feature = "act") {
     const modal = new ModalBuilder()
-        .setCustomId(encode("act", "edit", boardId, task.taskId))
+        .setCustomId(encode(feature, "edit", boardId, task.taskId))
         .setTitle("Edit task")
         .addLabelComponents(new LabelBuilder().setLabel("Title").setTextInputComponent(textInput("title", { max: 200, value: task.title })));
     if ((task.description ?? "").length <= DESCRIPTION_MAX) {

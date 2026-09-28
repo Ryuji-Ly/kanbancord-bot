@@ -38,7 +38,10 @@ test("the personal panel shows what you hear about, and offers this server's set
     const text = JSON.stringify(json);
     assert.ok(text.includes("Task moved to another column, Due within a day (reminder), I am assigned"), text);
     assert.ok(!text.includes("Task created"));
-    assert.ok(text.includes("Also tasks you commented on"));
+    assert.ok(text.includes("Also tasks you follow and tasks you commented on"), "following is on unless switched off");
+    const notFollowing = JSON.stringify(buildMyNotificationsPanel({ ...settings, includeFollowed: false, includeCommented: false },
+        "999", "Test Server").toJSON());
+    assert.ok(notFollowing.includes("Not tasks you follow"));
     assert.ok(text.includes("kc1:ntf:mode") && text.includes("kc1:ntf:server"));
     assert.ok(/"value":"ASSIGNMENTS"[^}]*"default":true/.test(text), "this server's setting is selected");
 
