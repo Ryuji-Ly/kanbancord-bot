@@ -43,7 +43,9 @@ module.exports = {
                 description: "Adds an update feed with the usual events: tasks, people, new comments, labels and board "
                     + "changes, mentioning people when they are assigned.",
                 examples: ["/kanbancord feed channel:#updates", "/kanbancord feed channel:#design board:Design interactive:False"],
-                notes: "Choose a feed's events and mentions in Server settings → Notifications on the website. "
+                notes: "Always adds a new feed: one the channel already has is kept, and feeds sharing a channel post "
+                    + "together. Change or remove feeds, and choose their events and mentions, in Server settings → "
+                    + "Notifications on the website. You are never pinged or messaged about your own changes. "
                     + "The bot must be able to view the channel and send messages there.",
             },
         },
@@ -66,12 +68,17 @@ module.exports = {
             case "feed": {
                 const channel = options.getChannel("channel", true);
                 const interactive = options.getBoolean("interactive") ?? true;
-                const board = await addFeed(ctx, channel.id, options.getString("board"), interactive);
+                const { board, alreadyThere } = await addFeed(ctx, channel.id, options.getString("board"), interactive);
                 const style = interactive
                     ? "Each post shows the whole task, with buttons to move it, assign people, edit or follow it. "
                     : "";
+                const existing = alreadyThere > 0
+                    ? `
+-# <#${channel.id}> already had ${alreadyThere === 1 ? "a feed" : `${alreadyThere} feeds`}; `
+                        + "it is kept, and their updates are combined into one post. Remove extra feeds on the website."
+                    : "";
                 return ctx.reply(successContainer(null, `Updates about ${board ? `**${board.name}**` : "every board"} will be posted in <#${channel.id}>. `
-                    + `${style}Choose its events and mentions on the website.`));
+                    + `${style}Choose its events and mentions on the website.${existing}`));
             }
         }
     },

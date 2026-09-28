@@ -40,13 +40,18 @@ async function setAuditChannel(ctx, channelId) {
 }
 
 /**
- * A feed for a channel with the default events, for every board or one. Its details are changed on
- * the website.
+ * A new feed for a channel with the default events, for every board or one. Always a new one: a
+ * feed the channel already has is left as it is, and posts of feeds sharing a channel are combined.
+ * Their details are changed on the website.
+ *
+ * @returns {Promise<{ board: object | null, alreadyThere: number }>} how many feeds the channel had
  */
 async function addFeed(ctx, channelId, boardInput, interactive = true) {
     const board = boardInput ? await resolveBoard(ctx, boardInput) : null;
+    const current = await ctx.api.get("/notifications");
+    const alreadyThere = (current?.feeds ?? []).filter((feed) => feed.channelId === String(channelId)).length;
     await ctx.api.post("/notifications/feeds", { body: { channelId, boardIds: board ? [board.boardId] : [], interactive } });
-    return board;
+    return { board, alreadyThere };
 }
 
 module.exports = { DM_MODES, SERVER_MODES, mySettings, setDmMode, setServerMode, serverSettings, setAuditChannel, addFeed };
