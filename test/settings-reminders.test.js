@@ -56,7 +56,9 @@ test("the server panel lists the audit channel and each feed's channel, boards, 
             auditChannelId: "3",
             channels: [{ channelId: "2", name: "updates" }, { channelId: "3", name: "audit-log" }],
             feeds: [
-                { feedId: 1, channelId: "2", boardIds: [], events: { TASK_MOVED: true }, mentions: { PEOPLE: true }, mentionRoles: false },
+                { feedId: 1, channelId: "2", boardIds: [], events: { TASK_MOVED: true, TASK_CREATED: true, USER_ASSIGNED: true },
+                    mentions: { TASK_MOVED: true, TASK_CREATED: false, USER_ASSIGNED: true, ROLE_ASSIGNED: true }, mentionRoles: false,
+                    interactive: true },
                 { feedId: 2, channelId: "9", boardIds: [1], events: {}, mentions: {}, mentionRoles: false },
             ],
             catalogue,
@@ -64,7 +66,9 @@ test("the server panel lists the audit channel and each feed's channel, boards, 
         boards: [{ boardId: 1, name: "Design" }],
     }).toJSON());
     assert.ok(text.includes("**Audit log channel:** #audit-log"));
-    assert.ok(text.includes("#updates · every board") && text.includes("Tasks · mentions for People"));
+    assert.ok(text.includes("#updates · every board · with buttons"), text);
+    assert.ok(text.includes("Tasks, People · mentions for Tasks, People"),
+        "mentions are per event; a category is named when any of its posted events mentions");
     assert.ok(text.includes("a channel that no longer exists · Design"));
 });
 
@@ -87,4 +91,49 @@ test("your own notification settings are changed as you, and nothing else outsid
     assert.equal(calls[0].headers["X-Acting-User-Id"], "555");
     assert.deepEqual(JSON.parse(calls[0].body), { servers: { 999: "NONE" } });
     assert.equal(calls[1].url, "http://localhost:8080/api/servers/999/boards");
+});
+
+test("/kanbancord feed updates the channel's feed for the same boards, and adds one otherwise", async () => {
+    const { saveFeed } = require("../src/services/settings/notificationSettings");
+    const feeds = [
+        { feedId: 1, channelId: "2", boardIds: [], interactive: false },
+        { feedId: 2, channelId: "2", boardIds: [7], interactive: true },
+    ];
+    const run = async (channelId, board, interactive) => {
+        const calls = [];
+        const ctx = {
+            guildId: "999",
+            user: { id: `u${Math.random()}` },
+            api: {
+                get: async (path) => (path === "/notifications" ? { feeds } : { content: [{ boardId: 7, name: "Design" }, { boardId: 8, name: "Ops" }] }),
+                put: async (path, { body }) => {
+                    calls.push(`PUT ${path} ${JSON.stringify(body)}`);
+                    return { interactive: body.interactive ?? false };
+                },
+                post: async (path, { body }) => {
+                    calls.push(`POST ${path} ${JSON.stringify(body)}`);
+                    return { interactive: body.interactive };
+                },
+            },
+        };
+        const result = await saveFeed(ctx, channelId, board, interactive);
+        return { calls, result };
+    };
+
+    let { calls, result } = await run("2", null, null);
+    assert.deepEqual(calls, ["PUT /notifications/feeds/1 {}"], "same channel, every board: that feed, left as it was");
+    assert.equal(result.updated, true);
+    assert.equal(result.interactive, false);
+
+    ({ calls } = await run("2", "7", false));
+    assert.deepEqual(calls, ["PUT /notifications/feeds/2 {\"interactive\":false}"], "same channel and board");
+
+    ({ calls, result } = await run("2", "8", null));
+    assert.deepEqual(calls, ["POST /notifications/feeds {\"channelId\":\"2\",\"boardIds\":[8],\"interactive\":true}"],
+        "same channel, another board: a new feed, interactive");
+    assert.equal(result.updated, false);
+
+    ({ calls } = await run("5", null, null));
+    assert.deepEqual(calls, ["POST /notifications/feeds {\"channelId\":\"5\",\"boardIds\":[],\"interactive\":true}"],
+        "another channel: a new feed");
 });
