@@ -27,9 +27,15 @@ function withQuery(path, query = {}) {
     return url.toString();
 }
 
+/**
+ * JSON in any of its forms: plain application/json, and vendor types such as Spring's health check,
+ * which answers application/vnd.spring-boot.actuator.v3+json unless asked for plain JSON.
+ */
+const JSON_TYPE = /^application\/(?:[\w.+-]+\+)?json(?:;|$)/i;
+
 async function parseResponseBody(response) {
     const contentType = response.headers.get("content-type") ?? "";
-    if (contentType.includes("application/json")) {
+    if (JSON_TYPE.test(contentType.trim())) {
         return response.json();
     }
 
@@ -46,6 +52,7 @@ async function request(path, { method = "GET", query, body, headers = {}, timeou
         response = await fetch(withQuery(path, query), {
             method,
             headers: {
+                Accept: "application/json",
                 "Content-Type": "application/json",
                 ...headers,
             },
@@ -72,4 +79,4 @@ async function request(path, { method = "GET", query, body, headers = {}, timeou
     return payload;
 }
 
-module.exports = { request, ApiError };
+module.exports = { request, ApiError, parseResponseBody };
