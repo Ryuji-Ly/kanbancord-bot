@@ -23,7 +23,9 @@ module.exports = {
                 .addChannelOption((option) =>
                     option.setName("channel").setDescription("Where to post updates").setRequired(true).addChannelTypes(...POSTABLE))
                 .addStringOption((option) =>
-                    option.setName("board").setDescription("Only this board (every board if left out)").setAutocomplete(true))),
+                    option.setName("board").setDescription("Only this board (every board if left out)").setAutocomplete(true))
+                .addBooleanOption((option) =>
+                    option.setName("interactive").setDescription("Show the whole task with buttons to change it (on if left out)"))),
 
     info: {
         subcommands: {
@@ -40,7 +42,7 @@ module.exports = {
             feed: {
                 description: "Adds an update feed with the usual events: tasks, people, new comments, labels and board "
                     + "changes, mentioning people when they are assigned.",
-                examples: ["/kanbancord feed channel:#updates", "/kanbancord feed channel:#design board:Design"],
+                examples: ["/kanbancord feed channel:#updates", "/kanbancord feed channel:#design board:Design interactive:False"],
                 notes: "Choose a feed's events and mentions in Server settings → Notifications on the website. "
                     + "The bot must be able to view the channel and send messages there.",
             },
@@ -63,9 +65,13 @@ module.exports = {
             }
             case "feed": {
                 const channel = options.getChannel("channel", true);
-                const board = await addFeed(ctx, channel.id, options.getString("board"));
+                const interactive = options.getBoolean("interactive") ?? true;
+                const board = await addFeed(ctx, channel.id, options.getString("board"), interactive);
+                const style = interactive
+                    ? "Each post shows the whole task, with buttons to move it, assign people, edit or follow it. "
+                    : "";
                 return ctx.reply(successContainer(null, `Updates about ${board ? `**${board.name}**` : "every board"} will be posted in <#${channel.id}>. `
-                    + "Choose its events and mentions on the website."));
+                    + `${style}Choose its events and mentions on the website.`));
             }
         }
     },

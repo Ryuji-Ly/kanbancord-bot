@@ -1,3 +1,7 @@
+const { postSnapshot } = require("../api/boardPostApi");
+const { snapshotModel } = require("../services/boards/boardData");
+const { componentCount } = require("../ui/containers");
+const { buildFeedCard } = require("../ui/feedViews");
 const { buildAuditMessage, buildDirectMessage, buildFeedMessage } = require("../ui/notificationViews");
 const { channelVisibility, serverName } = require("../services/notifications/visibility");
 const logger = require("../utils/logger");
@@ -40,7 +44,40 @@ function discordSenders(client) {
             await user.send(payload);
         },
         visibility: (guildId, channelId, userId) => channelVisibility(client, guildId, channelId, userId),
+        /** The whole board, as everyone in a channel sees it on an interactive post. */
+        loadBoard: (serverId, boardId) => postSnapshot(serverId, boardId).then(snapshotModel),
         serverName: (guildId) => serverName(client, guildId),
+    };
+}
+
+/** Discord's limit on components in one message. */
+const COMPONENTS_MAX = 40;
+
+/**
+ * The task card for interactive feed posts, made once per plan however many channels want it. Null
+ * when there is none to show (the task is gone), and when it cannot be made: the post then goes out
+ * plain rather than not at all.
+ */
+function cardLoader(plan, senders) {
+    let card;
+    return async () => {
+        if (card !== undefined) {
+            return card;
+        }
+        card = null;
+        if (!plan.board || !plan.task || plan.task.deleted || !senders.loadBoard) {
+            return card;
+        }
+        try {
+            const model = await senders.loadBoard(plan.serverId, plan.board.boardId);
+            const task = model.task(Number(plan.task.taskId));
+            const built = task ? buildFeedCard(model, task) : null;
+            // The summary above it takes a few components too; a card with a large gallery may not fit.
+            card = built && componentCount([built]) <= COMPONENTS_MAX - 8 ? built : null;
+        } catch (error) {
+            logger.warn(`[Delivery] No task card for batch ${plan.batchId}: ${error.message}`);
+        }
+        return card;
     };
 }
 
@@ -72,8 +109,11 @@ async function deliverPlan(plan, senders) {
 
     // Channels first: whether a direct message is needed depends on who these mentioned.
     const reached = [];
+    const cards = cardLoader(plan, senders);
     for (const delivery of plan.channels) {
-        const payload = delivery.kind === "AUDIT" ? buildAuditMessage(plan, delivery) : buildFeedMessage(plan, delivery);
+        const payload = delivery.kind === "AUDIT"
+            ? buildAuditMessage(plan, delivery)
+            : buildFeedMessage(plan, delivery, delivery.interactive ? await cards() : null);
         const ok = await attempt(`channel ${delivery.channelId} (batch ${plan.batchId})`,
             () => senders.sendToChannel(delivery.channelId, payload));
         if (ok && delivery.kind !== "AUDIT") {

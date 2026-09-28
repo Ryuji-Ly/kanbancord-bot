@@ -19,6 +19,15 @@ const SERVER_MODE_LABELS = {
     NONE: { label: "Nothing from this server", description: "No direct messages about this server" },
 };
 
+/** The tasks you hear about besides those you are assigned to or created. */
+function alsoAbout(settings) {
+    const also = [
+        settings.includeFollowed !== false ? "tasks you follow" : null,
+        settings.includeCommented ? "tasks you commented on" : null,
+    ].filter(Boolean);
+    return also.length > 0 ? `\n-# Also ${also.join(" and ")}.` : "\n-# Not tasks you follow.";
+}
+
 /** What you get by direct message, with this server's setting. */
 function buildMyNotificationsPanel(settings, guildId, guildName) {
     const events = settings.catalogue
@@ -29,12 +38,12 @@ function buildMyNotificationsPanel(settings, guildId, guildName) {
 
     const container = buildContainer({
         title: "Your notifications",
-        body: "Direct messages about tasks you are assigned to or created. You are never told about your own changes.",
+        body: "Direct messages about tasks you are assigned to, created or follow. You are never told about your own changes.",
     });
     appendDivider(container);
     appendText(container, settings.dmMode === "NEVER"
         ? "**Direct messages are off.**"
-        : `**You hear about:** ${events.length > 0 ? events.join(", ") : "nothing yet"}${settings.includeCommented ? "\n-# Also tasks you commented on." : ""}`);
+        : `**You hear about:** ${events.length > 0 ? events.join(", ") : "nothing yet"}${alsoAbout(settings)}`);
 
     container.addActionRowComponents(
         new ActionRowBuilder().addComponents(new StringSelectMenuBuilder()
@@ -78,7 +87,8 @@ function buildServerNotificationsPanel({ settings, boards }) {
                 .filter((category) => category.events.some((event) => feed.events[event.key]))
                 .map((category) => category.label);
             const pinging = [...categories.values()].filter((category) => feed.mentions[category.key]).map((category) => category.label);
-            return `- ${channelName(feed.channelId)} · ${scope}\n  -# ${on.join(", ") || "nothing"}${pinging.length > 0 ? ` · mentions for ${pinging.join(", ")}` : ""}`;
+            const buttons = feed.interactive ? " · with buttons" : "";
+            return `- ${channelName(feed.channelId)} · ${scope}${buttons}\n  -# ${on.join(", ") || "nothing"}${pinging.length > 0 ? ` · mentions for ${pinging.join(", ")}` : ""}`;
         });
         appendText(container, `**Update feeds**\n${lines.join("\n")}`);
     }

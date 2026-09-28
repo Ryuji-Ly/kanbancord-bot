@@ -53,9 +53,10 @@ function whenOf(entries) {
 
 /**
  * A feed post. Only the people and roles in the delivery are pinged; other mentions in the text
- * (someone who was unassigned, say) show as names without a ping.
+ * (someone who was unassigned, say) show as names without a ping. With `card`, an interactive post:
+ * the task's card follows, and carries the link to the website itself.
  */
-function buildFeedMessage(plan, delivery) {
+function buildFeedMessage(plan, delivery, card = null) {
     const entries = entriesById(plan, delivery.entryIds);
     const { title, subtitle } = heading(plan);
     const container = buildContainer({ title, body: subtitle ? `-# ${subtitle}` : undefined });
@@ -74,12 +75,12 @@ function buildFeedMessage(plan, delivery) {
     if (when) {
         appendFooter(container, when);
     }
-    if (plan.board) {
+    if (plan.board && !card) {
         container.addActionRowComponents(new ActionRowBuilder().addComponents(
             linkButton(plan.task && !plan.task.deleted ? "Open task" : "Open board", taskUrl(plan))));
     }
 
-    const payload = v2Payload(container);
+    const payload = v2Payload(card ? [container, card] : container);
     payload.allowedMentions = { users: delivery.mentionUserIds, roles: delivery.mentionRoleIds };
     return payload;
 }
@@ -108,7 +109,7 @@ function buildDirectMessage(plan, message, serverName) {
     const container = buildContainer({ title, body: place ? `-# ${place}` : undefined });
     // Written to the person: "assigned you" rather than their own mention.
     appendText(container, linesFor(plan, entries).split(`<@${message.userId}>`).join("you"));
-    appendFooter(container, `You get these about tasks you are assigned to or created. Change what you get in Settings → Notifications on ${webAppUrl.replace(/^https?:\/\//, "")}.`);
+    appendFooter(container, `You get these about tasks you are assigned to, created or follow. Change what you get in Settings → Notifications on ${webAppUrl.replace(/^https?:\/\//, "")}.`);
     if (plan.board) {
         container.addActionRowComponents(new ActionRowBuilder().addComponents(
             linkButton(plan.task && !plan.task.deleted ? "Open task" : "Open board", taskUrl(plan))));

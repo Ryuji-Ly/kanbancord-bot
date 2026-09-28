@@ -49,6 +49,9 @@ registerComponentHandler("act", async (ctx, { action, args }) => {
         await ctx.deferUpdate();
         const model = await actions.currentModel(ctx, boardId);
         const task = actions.requireTask(model, taskId);
+        if (choice === "follow" || choice === "unfollow") {
+            return showResult(ctx, boardId, await actions.setFollowing(ctx, boardId, taskId, choice === "follow"));
+        }
         if (choice === "assignme" || choice === "unassignme") {
             const others = model.assigneesOf(task).filter((id) => id !== ctx.user.id);
             const wanted = choice === "assignme" ? [...others, ctx.user.id] : others;

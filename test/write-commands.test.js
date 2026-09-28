@@ -138,13 +138,17 @@ test("the actions menu offers only what the user may do on this board", () => {
 
     const everything = Object.fromEntries(["EDIT_TASK", "MOVE_TASK", "DELETE_TASK", "ASSIGN_TASK_SELF", "ASSIGN_TASK_OTHERS",
         "CREATE_TASK_COMMENT", "APPLY_LABEL_TO_TASK", "REMOVE_LABEL_FROM_TASK"].map((key) => [key, { allowed: true }]));
-    assert.deepEqual(optionsFor(everything), ["edit", "move", "people", "roles", "labels", "priority", "due", "comment", "delete"]);
-    assert.deepEqual(optionsFor({ MOVE_TASK: { allowed: true }, ASSIGN_TASK_SELF: { allowed: true } }), ["move", "assignme"]);
+    assert.deepEqual(optionsFor(everything),
+        ["edit", "move", "people", "roles", "labels", "priority", "due", "comment", "follow", "delete"]);
+    assert.deepEqual(optionsFor({ MOVE_TASK: { allowed: true }, ASSIGN_TASK_SELF: { allowed: true } }), ["move", "assignme", "follow"]);
     assert.deepEqual(optionsFor(everything, { LABELS: false, PRIORITIES: false, DUE_DATES: false, COMMENTS: false, ASSIGNEES: false }),
-        ["edit", "move", "delete"]);
-    assert.deepEqual(optionsFor({}), []);
+        ["edit", "move", "follow", "delete"]);
+    assert.deepEqual(optionsFor({}), ["follow"], "anyone who can see a task can follow it");
     const archived = abilitiesOf({ ...snapshot, board: { ...snapshot.board, isArchived: true }, permissions: everything });
-    assert.deepEqual(panels.taskActions(model, task, archived, "555"), [], "archived boards cannot be changed");
+    assert.deepEqual(panels.taskActions(model, task, archived, "555").map((action) => action.value), ["follow"],
+        "archived boards cannot be changed, only followed");
+    const following = snapshotModel({ ...snapshot, followedTaskIds: [100] });
+    assert.deepEqual(panels.taskActions(following, task, archived, "555").map((action) => action.value), ["unfollow"]);
 
     const view = buildTaskView(model, task, { abilities: abilitiesOf({ ...snapshot, permissions: {} }) }).toJSON();
     assert.ok(!JSON.stringify(view).includes("kc1:act:menu"), "no menu when nothing can be done");
