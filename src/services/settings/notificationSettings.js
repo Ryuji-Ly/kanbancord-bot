@@ -39,14 +39,34 @@ async function setAuditChannel(ctx, channelId) {
     return ctx.api.put("/notifications/audit-channel", { body: { channelId } });
 }
 
-/**
- * A feed for a channel with the default events, for every board or one. Its details are changed on
- * the website.
- */
-async function addFeed(ctx, channelId, boardInput, interactive = true) {
-    const board = boardInput ? await resolveBoard(ctx, boardInput) : null;
-    await ctx.api.post("/notifications/feeds", { body: { channelId, boardIds: board ? [board.boardId] : [], interactive } });
-    return board;
+/** Whether a feed covers exactly these boards (none: every board). */
+function sameBoards(feed, boardIds) {
+    const covered = (feed.boardIds ?? []).map(Number).sort((a, b) => a - b);
+    const wanted = boardIds.map(Number).sort((a, b) => a - b);
+    return covered.length === wanted.length && covered.every((id, index) => id === wanted[index]);
 }
 
-module.exports = { DM_MODES, SERVER_MODES, mySettings, setDmMode, setServerMode, serverSettings, setAuditChannel, addFeed };
+/**
+ * The feed for a channel and a board (or every board). If the channel already has a feed for exactly
+ * that, it is updated rather than doubled; otherwise a new one starts with the default events. Its
+ * events and mentions are changed on the website.
+ *
+ * @param {boolean | null} interactive null: as it was for an existing feed, on for a new one
+ * @returns {Promise<{ board: object | null, updated: boolean, interactive: boolean }>}
+ */
+async function saveFeed(ctx, channelId, boardInput, interactive = null) {
+    const board = boardInput ? await resolveBoard(ctx, boardInput) : null;
+    const boardIds = board ? [board.boardId] : [];
+    const current = await ctx.api.get("/notifications");
+    const existing = (current?.feeds ?? []).find((feed) => feed.channelId === String(channelId) && sameBoards(feed, boardIds));
+    if (existing) {
+        const saved = await ctx.api.put(`/notifications/feeds/${existing.feedId}`, {
+            body: interactive === null ? {} : { interactive },
+        });
+        return { board, updated: true, interactive: Boolean(saved?.interactive ?? existing.interactive) };
+    }
+    const saved = await ctx.api.post("/notifications/feeds", { body: { channelId, boardIds, interactive: interactive ?? true } });
+    return { board, updated: false, interactive: Boolean(saved?.interactive ?? interactive ?? true) };
+}
+
+module.exports = { DM_MODES, SERVER_MODES, mySettings, setDmMode, setServerMode, serverSettings, setAuditChannel, saveFeed };

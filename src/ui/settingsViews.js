@@ -86,7 +86,10 @@ function buildServerNotificationsPanel({ settings, boards }) {
             const on = [...categories.values()]
                 .filter((category) => category.events.some((event) => feed.events[event.key]))
                 .map((category) => category.label);
-            const pinging = [...categories.values()].filter((category) => feed.mentions[category.key]).map((category) => category.label);
+            // Mentions are per event; a category is named if any of its posted events mentions people.
+            const pinging = [...categories.values()]
+                .filter((category) => category.events.some((event) => feed.events[event.key] && feed.mentions[event.key]))
+                .map((category) => category.label);
             const buttons = feed.interactive ? " · with buttons" : "";
             return `- ${channelName(feed.channelId)} · ${scope}${buttons}\n  -# ${on.join(", ") || "nothing"}${pinging.length > 0 ? ` · mentions for ${pinging.join(", ")}` : ""}`;
         });

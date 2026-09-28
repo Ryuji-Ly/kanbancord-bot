@@ -1,6 +1,6 @@
 const { ChannelType, InteractionContextType, PermissionFlagsBits, SlashCommandBuilder } = require("discord.js");
 const { respondBoardOptions } = require("../services/boards/autocomplete");
-const { addFeed, serverSettings, setAuditChannel } = require("../services/settings/notificationSettings");
+const { saveFeed, serverSettings, setAuditChannel } = require("../services/settings/notificationSettings");
 const { successContainer } = require("../ui/containers");
 const { buildServerNotificationsPanel } = require("../ui/settingsViews");
 
@@ -25,7 +25,7 @@ module.exports = {
                 .addStringOption((option) =>
                     option.setName("board").setDescription("Only this board (every board if left out)").setAutocomplete(true))
                 .addBooleanOption((option) =>
-                    option.setName("interactive").setDescription("Show the whole task with buttons to change it (on if left out)"))),
+                    option.setName("interactive").setDescription("Show the whole task with buttons to change it (on for a new feed)"))),
 
     info: {
         subcommands: {
@@ -43,8 +43,11 @@ module.exports = {
                 description: "Adds an update feed with the usual events: tasks, people, new comments, labels and board "
                     + "changes, mentioning people when they are assigned.",
                 examples: ["/kanbancord feed channel:#updates", "/kanbancord feed channel:#design board:Design interactive:False"],
-                notes: "Choose a feed's events and mentions in Server settings → Notifications on the website. "
-                    + "The bot must be able to view the channel and send messages there.",
+                notes: "If the channel already has a feed for the same board (or for every board), that feed is "
+                    + "updated instead of adding another; a different channel or board adds a new feed. Leaving out "
+                    + "interactive keeps an existing feed's setting. Choose events and which of them mention people in "
+                    + "Server settings → Notifications on the website. You are never pinged or messaged about your own "
+                    + "changes. The bot must be able to view the channel and send messages there.",
             },
         },
     },
@@ -65,13 +68,16 @@ module.exports = {
             }
             case "feed": {
                 const channel = options.getChannel("channel", true);
-                const interactive = options.getBoolean("interactive") ?? true;
-                const board = await addFeed(ctx, channel.id, options.getString("board"), interactive);
+                const { board, updated, interactive } = await saveFeed(ctx, channel.id, options.getString("board"),
+                    options.getBoolean("interactive"));
+                const about = board ? `**${board.name}**` : "every board";
                 const style = interactive
                     ? "Each post shows the whole task, with buttons to move it, assign people, edit or follow it. "
-                    : "";
-                return ctx.reply(successContainer(null, `Updates about ${board ? `**${board.name}**` : "every board"} will be posted in <#${channel.id}>. `
-                    + `${style}Choose its events and mentions on the website.`));
+                    : "Posts show what changed, without buttons. ";
+                const what = updated
+                    ? `Updated the feed for ${about} in <#${channel.id}>. `
+                    : `Updates about ${about} will be posted in <#${channel.id}>. `;
+                return ctx.reply(successContainer(null, `${what}${style}Choose its events and mentions on the website.`));
             }
         }
     },
