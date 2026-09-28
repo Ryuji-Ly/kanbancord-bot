@@ -44,7 +44,7 @@ test("the new-task form from a post asks which column, starting with the first",
     const json = views.postTaskModal(snapshotModel(snapshotFixture())).toJSON();
     assert.equal(json.custom_id, "kc1:post:create:1");
     assert.ok(json.title.length <= 45);
-    assert.equal(json.components.length, 3);
+    assert.equal(json.components.length, 5, "title, description, column, then as many extras as fit");
     const select = json.components[2].component;
     assert.equal(select.custom_id, "column");
     assert.deepEqual(select.options.map((option) => [option.value, Boolean(option.default)]),

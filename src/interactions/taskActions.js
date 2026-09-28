@@ -5,6 +5,7 @@ const { columnView, taskViewById } = require("../services/boards/viewService");
 const panels = require("../ui/taskPanels");
 const { parseDue } = require("../utils/dueDate");
 const { UserFacingError } = require("../utils/errorMessages");
+const { readNewTask } = require("../ui/taskForm");
 
 /**
  * Changing a task from its view: the actions menu, the panels it opens, and the forms. Every change
@@ -115,10 +116,7 @@ registerModalHandler("act", async (ctx, { action, args }) => {
         case "comment":
             return showResult(ctx, boardId, await actions.addComment(ctx, boardId, id, fields.getTextInputValue("content")));
         case "create":
-            return showResult(ctx, boardId, await actions.createTask(ctx, boardId, id, {
-                title: fields.getTextInputValue("title"),
-                description: optionalField(ctx, "description"),
-            }));
+            return showResult(ctx, boardId, await actions.createTask(ctx, boardId, id, readNewTask(fields)));
         default:
             throw new UserFacingError("Not available", "That form is not available here.");
     }

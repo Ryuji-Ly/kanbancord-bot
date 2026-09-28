@@ -1,5 +1,7 @@
 const { boardEditModal, columnDeletePanel } = require("../../ui/boardViews");
 const { audienceWarning, postedNotice } = require("../../ui/postViews");
+const { newTaskModal } = require("../../ui/taskForm");
+const { encode } = require("../../utils/customId");
 const panels = require("../../ui/taskPanels");
 const { parseDue } = require("../../utils/dueDate");
 const { UserFacingError } = require("../../utils/errorMessages");
@@ -46,7 +48,7 @@ async function taskCreate(ctx) {
     if (!column) {
         throw new UserFacingError("No columns", "This board has no columns to add a task to yet.");
     }
-    await ctx.showModal(panels.createTaskModal(board.boardId, column.columnId));
+    await ctx.showModal(newTaskModal({ customId: encode("act", "create", board.boardId, column.columnId), model }));
 }
 
 async function taskEdit(ctx) {

@@ -2,6 +2,7 @@ const { ChannelType, InteractionContextType, PermissionFlagsBits, SlashCommandBu
 const { respondBoardOptions } = require("../services/boards/autocomplete");
 const { saveFeed, serverSettings, setAuditChannel } = require("../services/settings/notificationSettings");
 const { successContainer } = require("../ui/containers");
+const { buildFeaturesPanel } = require("../ui/featureViews");
 const { buildServerNotificationsPanel } = require("../ui/settingsViews");
 
 const POSTABLE = [ChannelType.GuildText, ChannelType.GuildAnnouncement];
@@ -9,11 +10,12 @@ const POSTABLE = [ChannelType.GuildText, ChannelType.GuildAnnouncement];
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("kanbancord")
-        .setDescription("Where KanbanCord posts about this server")
+        .setDescription("This server's KanbanCord settings: features and where updates are posted")
         .setContexts(InteractionContextType.Guild)
         // Shown to server managers only; KanbanCord still checks each change itself.
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
         .addSubcommand((sub) => sub.setName("settings").setDescription("Show the audit log channel and update feeds"))
+        .addSubcommand((sub) => sub.setName("features").setDescription("Choose the features this server uses, or simple mode"))
         .addSubcommand((sub) =>
             sub.setName("audit-channel").setDescription("Set the channel that mirrors the audit log, or turn it off")
                 .addChannelOption((option) =>
@@ -29,6 +31,14 @@ module.exports = {
 
     info: {
         subcommands: {
+            features: {
+                description: "Shows which optional features the server uses (assignees, due dates, priorities, labels, "
+                    + "comments, custom permissions), with a menu to switch them on or off. With none on, the server "
+                    + "is in simple mode: boards, columns, and tasks with a title and description.",
+                examples: ["/kanbancord features"],
+                notes: "New servers start in simple mode. Switching a feature off hides it without deleting anything. "
+                    + "Boards can switch features off for themselves on the website.",
+            },
             settings: {
                 description: "Shows where the bot posts about this server: the audit log channel and each update feed. "
                     + "Only you see it.",
@@ -59,6 +69,8 @@ module.exports = {
         switch (options.getSubcommand()) {
             case "settings":
                 return ctx.reply(buildServerNotificationsPanel(await serverSettings(ctx)));
+            case "features":
+                return ctx.reply(buildFeaturesPanel(await ctx.api.get("/features")));
             case "audit-channel": {
                 const channel = options.getChannel("channel");
                 await setAuditChannel(ctx, channel?.id ?? null);

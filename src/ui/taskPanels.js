@@ -224,20 +224,6 @@ function editTaskModal(boardId, task, feature = "act") {
     return modal;
 }
 
-function createTaskModal(boardId, columnId) {
-    return new ModalBuilder()
-        .setCustomId(encode("act", "create", boardId, columnId))
-        .setTitle("New task")
-        .addLabelComponents(
-            new LabelBuilder().setLabel("Title").setTextInputComponent(textInput("title", { max: 200 })),
-            new LabelBuilder().setLabel("Description").setTextInputComponent(textInput("description", {
-                style: TextInputStyle.Paragraph,
-                max: DESCRIPTION_MAX,
-                required: false,
-            })),
-        );
-}
-
 function dueModal(boardId, task) {
     return new ModalBuilder()
         .setCustomId(encode("act", "due", boardId, task.taskId))
@@ -272,7 +258,6 @@ module.exports = {
     priorityPanel,
     deletePanel,
     editTaskModal,
-    createTaskModal,
     dueModal,
     commentModal,
 };

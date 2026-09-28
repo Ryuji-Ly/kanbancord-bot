@@ -16,14 +16,18 @@ This is the Discord bot. The website, where you can see whole boards at a glance
 
 | Command | What it does |
 | --- | --- |
+| `/guide` | A step-by-step guide to setting up and using KanbanCord, all in Discord. |
 | `/board list` · `view` · `create` · `edit` · `archive` · `restore` | Find, create and manage boards. New boards start with To Do, In Progress and Done. |
+| `/board post` | Post a board in a channel or thread; the post updates itself whenever the board changes. |
 | `/column add` · `rename` · `move` · `delete` | Shape a board's columns. |
 | `/task create` · `view` · `edit` · `move` · `delete` | Add tasks and move them through the board. |
 | `/task assign` · `unassign` | Assign people or whole roles. |
 | `/task label` · `priority` · `due` | Organise tasks with labels, priorities and due dates. |
+| `/label` · `/priority` `list` · `create` · `edit` · `delete` | Manage a board's labels and priority levels (`/priority move` reorders them). |
 | `/comment list` · `add` | Discuss a task. |
 | `/notifications` | Choose what the bot tells you by direct message. |
-| `/kanbancord settings` · `audit-channel` · `feed` | For server managers: update feeds and the audit log channel. |
+| `/kanbancord features` | For server managers: simple mode, or which features the server uses. |
+| `/kanbancord settings` · `audit-channel` · `feed` | For server managers: update feeds (optionally with buttons on each post) and the audit log channel. |
 | `/report` | Send a bug report or suggestion to the developer. |
 | `/help` | Every command, with examples. |
 
