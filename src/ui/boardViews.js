@@ -207,6 +207,7 @@ module.exports = {
     boardEditModal,
     boardUrl,
     linkButton,
+    taskLine,
     buildBoardList,
     buildBoardOverview,
     buildColumnView,

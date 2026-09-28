@@ -23,7 +23,9 @@ module.exports = {
         .addSubcommand((sub) =>
             sub.setName("archive").setDescription("Archive a board: it stays, read-only").addStringOption(boardOption()))
         .addSubcommand((sub) =>
-            sub.setName("restore").setDescription("Bring back an archived board").addStringOption(boardOption())),
+            sub.setName("restore").setDescription("Bring back an archived board").addStringOption(boardOption()))
+        .addSubcommand((sub) =>
+            sub.setName("post").setDescription("Post a board here that keeps itself up to date").addStringOption(boardOption())),
 
     info: {
         subcommands: {
@@ -55,6 +57,14 @@ module.exports = {
                 description: "Makes an archived board usable again.",
                 examples: ["/board restore board:Sprint 11"],
             },
+            post: {
+                description: "Posts the whole board in this channel or thread, and edits the post whenever the board "
+                    + "changes. Anyone can open its columns and tasks, or add a task, privately; what they can change "
+                    + "depends on their own permissions.",
+                examples: ["/board post board:Sprint"],
+                notes: "Needs permission to edit the board's details. If some people who can see this channel cannot "
+                    + "see the board, you are asked first. To stop a post, delete its message.",
+            },
         },
     },
 
@@ -76,6 +86,8 @@ module.exports = {
                 return flows.boardArchive(ctx, true);
             case "restore":
                 return flows.boardArchive(ctx, false);
+            case "post":
+                return flows.boardPost(ctx);
         }
     },
 
