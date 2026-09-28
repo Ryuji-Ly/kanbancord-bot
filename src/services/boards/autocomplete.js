@@ -1,8 +1,9 @@
+const { colorChoices } = require("../../utils/colors");
 const { truncate } = require("../../utils/format");
 const { autocompleteChoices, getSnapshot, listBoards, resolveBoard, snapshotModel } = require("./boardData");
 
 /**
- * Suggestions while typing a board, task, column, priority or label option. Only what the user can
+ * Suggestions while typing a board, task, column, priority, label or colour option. Only what the user can
  * see is suggested, since the lists come from the API as that user. Everything but the board
  * follows the board chosen in the same command.
  */
@@ -51,14 +52,15 @@ function columnChoices(model, typed) {
     );
 }
 
-function priorityChoices(model, typed) {
+/** Setting a task's priority can also clear it; managing levels with /priority cannot pick "none". */
+function priorityChoices(model, typed, commandName) {
     const levels = autocompleteChoices(
         model.priorities(),
         typed,
         (level) => ({ name: truncate(level.name, 100), value: String(level.priorityId) }),
         (level) => level.name,
-    ).slice(0, 24);
-    return [...levels, { name: "No priority", value: "none" }];
+    );
+    return commandName === "priority" ? levels : [...levels.slice(0, 24), { name: "No priority", value: "none" }];
 }
 
 function labelChoices(model, typed) {
@@ -79,9 +81,11 @@ async function respondBoardOptions(ctx) {
     let choices = [];
     if (focused.name === "board") {
         choices = await boardChoices(ctx, focused.value);
+    } else if (focused.name === "color") {
+        choices = colorChoices(focused.value);
     } else if (FOLLOWING_BOARD[focused.name]) {
         const model = await chosenBoard(ctx, options.getString("board"));
-        choices = model ? FOLLOWING_BOARD[focused.name](model, focused.value) : [];
+        choices = model ? FOLLOWING_BOARD[focused.name](model, focused.value, ctx.interaction.commandName) : [];
     }
     await ctx.interaction.respond(choices);
 }

@@ -48,7 +48,7 @@ function taskLine(model, task) {
 function buildBoardList(boards) {
     const container = buildContainer({ title: "Boards" });
     if (boards.length === 0) {
-        appendText(container, "There are no boards you can see here yet. Create one on the website.");
+        appendText(container, "There are no boards you can see here yet. Create one with `/board create`.");
         return container;
     }
     const lines = boards.map((board) => {
