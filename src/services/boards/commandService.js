@@ -1,9 +1,11 @@
 const { boardEditModal, columnDeletePanel } = require("../../ui/boardViews");
+const { audienceWarning, postedNotice } = require("../../ui/postViews");
 const panels = require("../../ui/taskPanels");
 const { parseDue } = require("../../utils/dueDate");
 const { UserFacingError } = require("../../utils/errorMessages");
 const { plain } = require("../../utils/format");
 const actions = require("./taskActions");
+const { hiddenAudience, interactionChannel, postBoard, requireCanPost } = require("./boardPosts");
 const {
     getSnapshot,
     resolveBoard,
@@ -187,6 +189,23 @@ async function boardArchive(ctx, archived) {
     await ctx.reply(await boardViewById(ctx, board.boardId, result.notice));
 }
 
+/**
+ * Posts the board here, to update itself from now on. Asks first when some who can see this channel
+ * could not see the board; the answer is only shown to the user.
+ */
+async function boardPost(ctx) {
+    await ctx.defer({ ephemeral: true });
+    const board = await resolveBoard(ctx, ctx.interaction.options.getString("board", true));
+    const channel = await interactionChannel(ctx);
+    requireCanPost(ctx, channel);
+    const hidden = await hiddenAudience(ctx, board.boardId, channel);
+    if (hidden) {
+        return ctx.reply(audienceWarning(board.boardId, board.name, hidden));
+    }
+    const { board: posted } = await postBoard(ctx, board.boardId, channel);
+    await ctx.reply(postedNotice(posted.name));
+}
+
 module.exports = {
     taskCreate,
     taskEdit,
@@ -204,4 +223,5 @@ module.exports = {
     boardCreate,
     boardEdit,
     boardArchive,
+    boardPost,
 };
