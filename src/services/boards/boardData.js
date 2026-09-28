@@ -132,6 +132,10 @@ function snapshotModel(snapshot) {
         permissions: snapshot.permissions ?? {},
         columns,
         tasksIn,
+        /** Every task, in no particular order. */
+        tasks: snapshot.tasks,
+        /** Which labels are on which tasks. */
+        taskLabels: snapshot.taskLabels,
         /** The board's priority levels, most urgent first. */
         priorities: () => [...snapshot.priorities].sort((a, b) => a.position - b.position),
         labels: () => [...snapshot.labels].sort((a, b) => a.name.localeCompare(b.name)),

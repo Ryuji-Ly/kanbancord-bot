@@ -87,6 +87,9 @@ async function taskAssign(ctx, assign) {
 async function taskLabel(ctx) {
     await ctx.defer();
     const { board, model, task } = await boardAndTask(ctx);
+    if (model.labels().length === 0) {
+        throw new UserFacingError("No labels yet", "This board has no labels yet. Create one with `/label create`.");
+    }
     const label = resolveLabel(model, ctx.interaction.options.getString("label", true));
     const applied = model.labelsOf(task).map((entry) => entry.labelId);
     const wanted = applied.includes(label.labelId)

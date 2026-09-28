@@ -74,10 +74,12 @@ module.exports = {
             label: {
                 description: "Adds the label to the task, or takes it off if the task already has it.",
                 examples: ["/task label board:Sprint task:Fix login label:Bug"],
+                notes: "Create and manage the board's labels with `/label`.",
             },
             priority: {
                 description: "Sets the task's priority level, or removes it with No priority.",
                 examples: ["/task priority board:Sprint task:Fix login priority:High"],
+                notes: "Change the board's priority levels with `/priority`.",
             },
             due: {
                 description: "Sets when the task is due, or removes the due date with none.",
