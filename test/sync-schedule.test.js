@@ -45,3 +45,13 @@ test("syncs once the API is ready, then schedules the next run", async () => {
     release();
     assert.deepEqual(events, ["ready", "sync", "sleep 300000"], "a run with failures is retried after 5 minutes");
 });
+
+test("the health check is understood whatever flavour of JSON it comes in", async () => {
+    const { parseResponseBody } = require("../src/api/httpClient");
+    const answer = (type, body) => new Response(body, { status: 200, headers: { "content-type": type } });
+    assert.deepEqual(await parseResponseBody(answer("application/vnd.spring-boot.actuator.v3+json", '{"status":"UP"}')),
+        { status: "UP" }, "Spring's own type for its health check");
+    assert.deepEqual(await parseResponseBody(answer("application/json;charset=UTF-8", '{"a":1}')), { a: 1 });
+    assert.equal(await parseResponseBody(answer("text/plain", "hello")), "hello");
+    assert.equal(await parseResponseBody(answer("application/jsonp", "x")), "x", "not JSON");
+});
