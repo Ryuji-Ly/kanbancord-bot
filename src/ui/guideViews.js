@@ -63,6 +63,9 @@ const STEPS = [
             "When your server needs more, a server manager can switch on **assignees**, **due dates** (with "
                 + "reminders), **priorities**, **labels**, **comments** and **custom permissions** with "
                 + "`/kanbancord features`. Switching one off again hides it without deleting anything.",
+            "What people may do follows their Discord roles. For a small group that trusts each other, **open "
+                + "permissions** (also in `/kanbancord features`) let everyone who can talk here do anything with boards "
+                + "and tasks.",
             state.features
                 ? `Right now: ${Object.entries(state.features).filter(([, value]) => value).map(([key]) => `**${key.toLowerCase().replace("_", " ")}**`).join(", ") || "simple mode"}.`
                 : null,
