@@ -40,6 +40,8 @@ module.exports = {
     supportServerUrl: optional("KANBANCORD_SUPPORT_URL", "https://discord.gg/SDr4ujFPGR"),
     /** Who receives /report submissions, by DM. */
     devUserIds: idList("KANBANCORD_DEV_USER_IDS"),
+    /** The status page's heartbeat address: the bot calls it every minute while connected. */
+    statusHeartbeatUrl: optional("KANBANCORD_STATUS_HEARTBEAT_URL"),
     /** Tokens for bot-listing sites that show the server count; a site without one is skipped. */
     listingTokens: {
         botboard: optional("BOTBOARD_TOKEN"),

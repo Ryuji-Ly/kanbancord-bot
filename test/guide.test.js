@@ -89,3 +89,22 @@ test("the guide's ticks are found out as the user, and skipped where they may no
     assert.deepEqual(await guideState(ctx), { features: { ...NONE, COMMENTS: true }, boards: 1, tasks: 2 },
         "no feeds count for someone who may not see the server's notifications");
 });
+
+test("open permissions: shown on the features panel, asked before turning on, kept out of Everything on", async () => {
+    const { everythingOn, openPermissionsWarning } = require("../src/ui/featureViews");
+    const off = JSON.stringify(buildFeaturesPanel(NONE, false).toJSON());
+    assert.match(off, /Open permissions: off/);
+    assert.ok(off.includes("kc1:feat:open") && !off.includes("kc1:feat:close"));
+    const on = JSON.stringify(buildFeaturesPanel({ ...ALL, PERMISSIONS: false }, true).toJSON());
+    assert.match(on, /Open permissions: on/);
+    assert.ok(on.includes("kc1:feat:close"));
+    assert.ok(/kc1:feat:all[^}]*"disabled":true/.test(on), "everything that can be on is on");
+
+    assert.ok(!everythingOn(NONE, true).includes("PERMISSIONS"), "never custom permissions while open");
+    assert.ok(everythingOn(NONE, false).includes("PERMISSIONS"));
+
+    const blocked = JSON.stringify(openPermissionsWarning(true).toJSON());
+    assert.match(blocked, /Custom permissions are on/);
+    assert.ok(/kc1:feat:openyes[^}]*"disabled":true/.test(blocked), "cannot turn on over custom permissions");
+    assert.ok(!/kc1:feat:openyes[^}]*"disabled":true/.test(JSON.stringify(openPermissionsWarning(false).toJSON())));
+});

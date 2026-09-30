@@ -50,3 +50,22 @@ test("totals add up every shard, so each site gets one number", async () => {
     const single = { guilds: { cache: new Collection([["1", { memberCount: 7 }], ["2", { memberCount: 3 }]]) } };
     assert.deepEqual(await totals(single), { guilds: 2, users: 10 });
 });
+
+test("the status heartbeat is only sent while every shard is connected", async () => {
+    const { beat } = require("../src/services/status/heartbeat");
+    const { Status } = require("discord.js");
+    const sent = [];
+    const send = async (url) => {
+        sent.push(url);
+        return { ok: true, status: 200 };
+    };
+    const url = "https://example.test/heartbeat";
+    const shards = (...statuses) => ({ shard: { fetchClientValues: async () => statuses } });
+
+    assert.equal(await beat(shards(Status.Ready, Status.Ready), { url, send }), true);
+    assert.equal(await beat(shards(Status.Ready, Status.Reconnecting), { url, send }), false, "one shard down: no heartbeat");
+    assert.equal(await beat({ ws: { status: Status.Ready } }, { url, send }), true);
+    assert.equal(await beat({ ws: { status: Status.Ready } }, { url: "", send }), false, "no address, nothing sent");
+    assert.deepEqual(sent, [url, url]);
+    await assert.rejects(beat({ ws: { status: Status.Ready } }, { url, send: async () => ({ ok: false, status: 500 }) }), /HTTP 500/);
+});

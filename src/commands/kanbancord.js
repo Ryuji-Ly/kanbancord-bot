@@ -2,6 +2,7 @@ const { ChannelType, InteractionContextType, PermissionFlagsBits, SlashCommandBu
 const { respondBoardOptions } = require("../services/boards/autocomplete");
 const { saveFeed, serverSettings, setAuditChannel } = require("../services/settings/notificationSettings");
 const { successContainer } = require("../ui/containers");
+const { loadFeatures } = require("../services/settings/features");
 const { buildFeaturesPanel } = require("../ui/featureViews");
 const { buildServerNotificationsPanel } = require("../ui/settingsViews");
 
@@ -37,7 +38,9 @@ module.exports = {
                     + "is in simple mode: boards, columns, and tasks with a title and description.",
                 examples: ["/kanbancord features"],
                 notes: "New servers start in simple mode. Switching a feature off hides it without deleting anything. "
-                    + "Boards can switch features off for themselves on the website.",
+                    + "Boards can switch features off for themselves on the website. Open permissions, which let "
+                    + "everyone who can talk here do anything with boards and tasks, are switched separately below the "
+                    + "menu, after a warning; they cannot be on together with custom permissions.",
             },
             settings: {
                 description: "Shows where the bot posts about this server: the audit log channel and each update feed. "
@@ -69,8 +72,10 @@ module.exports = {
         switch (options.getSubcommand()) {
             case "settings":
                 return ctx.reply(buildServerNotificationsPanel(await serverSettings(ctx)));
-            case "features":
-                return ctx.reply(buildFeaturesPanel(await ctx.api.get("/features")));
+            case "features": {
+                const { enabled, open } = await loadFeatures(ctx);
+                return ctx.reply(buildFeaturesPanel(enabled, open));
+            }
             case "audit-channel": {
                 const channel = options.getChannel("channel");
                 await setAuditChannel(ctx, channel?.id ?? null);

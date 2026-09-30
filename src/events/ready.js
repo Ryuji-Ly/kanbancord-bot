@@ -4,6 +4,7 @@ const { startSyncSchedule } = require("../services/sync/syncScheduler");
 const { startDeliveryWorker } = require("../delivery/deliveryWorker");
 const { startPostWorker } = require("../delivery/postWorker");
 const { startListingStats } = require("../services/listings/listingStats");
+const { startHeartbeat } = require("../services/status/heartbeat");
 
 module.exports = {
     name: "clientReady",
@@ -31,6 +32,7 @@ module.exports = {
             startDeliveryWorker(client);
             startPostWorker(client);
             startListingStats(client);
+            startHeartbeat(client);
         }
     },
 };
