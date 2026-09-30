@@ -1,7 +1,8 @@
 /**
- * What the user may do on a board, read from the board snapshot's permissions and switched-on
- * features, the same way the website decides what to show. Only used to offer the right actions:
- * the API checks every request itself.
+ * What can be done on a board: the switched-on features, and whether the board is archived. With
+ * `forUser`, also the permissions of whoever loaded it, the same way the website decides what to
+ * show. Discord views are shared by the channel, so they leave that out and offer everything the
+ * board allows; the API checks each change as whoever makes it.
  */
 
 const FEATURE_OF = {
@@ -12,10 +13,13 @@ const FEATURE_OF = {
     REMOVE_LABEL_FROM_TASK: "LABELS",
 };
 
-function abilitiesOf(snapshot) {
+function abilitiesOf(snapshot, { forUser = true } = {}) {
     const archived = !snapshot || snapshot.board.isArchived;
     const features = snapshot?.features ?? {};
     const allowed = (key) => {
+        if (!forUser) {
+            return true;
+        }
         const decision = snapshot?.permissions?.[key];
         return typeof decision === "boolean" ? decision : Boolean(decision?.allowed);
     };

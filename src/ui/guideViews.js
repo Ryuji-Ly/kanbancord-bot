@@ -91,6 +91,8 @@ const STEPS = [
                 + "- `/column rename` renames one\n"
                 + "- `/column move column:Review position:3` moves it (1 is the leftmost)\n"
                 + "- `/column delete` deletes one and its tasks, after asking",
+            "Or open a column from `/board view`: it has a menu to move it and buttons to add a task, rename or delete it. "
+                + "`/board view` itself has **Add column**.",
             "The last column counts as **done**: tasks there get no due-date reminders.",
         ],
     },
@@ -104,7 +106,9 @@ const STEPS = [
                 + "Add `column:` to start it somewhere other than the first column.",
             "`/task move task:... column:Done` moves it along. `/task view` shows a task in full, with a menu for "
                 + "everything you may change: edit, move, assign, delete and more.",
-            "Typing a board or task name suggests matches as you type, so you never need ids.",
+            "You rarely need to type these: `/board view` and each column have **Add task**, and every view links to the "
+                + "next, from the board list down to a task's comments. Anyone can use the buttons; whether they may make the "
+                + "change is checked when they click.",
         ],
     },
     {
