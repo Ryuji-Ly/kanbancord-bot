@@ -1,6 +1,7 @@
 const { InteractionContext } = require("../utils/interactionContext");
 const { route } = require("../utils/interactionRouter");
 const { warningContainer, v2Payload } = require("../ui/containers");
+const { simpleModeHint } = require("../services/guide/simpleModeHint");
 const logger = require("../utils/logger");
 
 /**
@@ -30,10 +31,16 @@ module.exports = {
                 logger.warn(`Unknown command: ${interaction.commandName}`);
                 return;
             }
+            // Worked out alongside the command, as the server was before it ran.
+            const hint = simpleModeHint(ctx);
             try {
                 await command.execute(ctx);
             } catch (error) {
                 await ctx.fail(error);
+            }
+            const tip = await hint;
+            if (tip && (interaction.replied || interaction.deferred)) {
+                await interaction.followUp(v2Payload(tip, { ephemeral: true })).catch(() => {});
             }
             return;
         }
