@@ -45,12 +45,13 @@ function taskActions(model, task, abilities, userId) {
     if (abilities.moveTask && model.columns.length > 1) {
         actions.push({ value: "move", label: "Move to another column" });
     }
+    if (abilities.assignSelf && userId) {
+        const assigned = model.assigneesOf(task).includes(String(userId));
+        actions.push({ value: assigned ? "unassignme" : "assignme", label: assigned ? "Unassign me" : "Assign me" });
+    }
     if (abilities.assignOthers) {
         actions.push({ value: "people", label: "Assign people" });
         actions.push({ value: "roles", label: "Assign roles" });
-    } else if (abilities.assignSelf) {
-        const assigned = model.assigneesOf(task).includes(String(userId));
-        actions.push({ value: assigned ? "unassignme" : "assignme", label: assigned ? "Unassign me" : "Assign me" });
     }
     if ((abilities.applyLabel || abilities.removeLabel) && model.labels().length > 0) {
         actions.push({ value: "labels", label: "Labels" });
@@ -239,9 +240,10 @@ function dueModal(boardId, task) {
             })));
 }
 
-function commentModal(boardId, taskId) {
+/** @param {boolean} [fromComments] opened from the comments, which then show the new comment */
+function commentModal(boardId, taskId, fromComments = false) {
     return new ModalBuilder()
-        .setCustomId(encode("act", "comment", boardId, taskId))
+        .setCustomId(fromComments ? encode("comment", "post", boardId, taskId) : encode("act", "comment", boardId, taskId))
         .setTitle("Add a comment")
         .addLabelComponents(new LabelBuilder()
             .setLabel("Comment")

@@ -100,6 +100,10 @@ function buildTaskView(model, task, { abilities, userId } = {}) {
             .setStyle(ButtonStyle.Secondary)
             .setLabel(`Back to ${column.name}`.slice(0, 80)));
     }
+    buttons.push(new ButtonBuilder()
+        .setCustomId(encode("board", "open", board.boardId))
+        .setStyle(ButtonStyle.Secondary)
+        .setLabel("Board"));
     buttons.push(linkButton("Open on website", boardUrl(board, task.taskId)));
     const actions = abilities ? actionsRow(model, task, abilities, userId) : null;
     if (actions) {

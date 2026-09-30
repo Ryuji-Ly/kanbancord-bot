@@ -30,9 +30,12 @@ async function columnView(ctx, boardId, columnId, page, notice) {
     return withNotice(notice, buildColumnView(model, Number(columnId), Number(page) || 0));
 }
 
-/** The task view for this user, with the changes they may make. */
+/**
+ * The task view, offering every change the board allows. Someone else in the channel may use it,
+ * so nothing is left out because of who ran the command; each change is checked as whoever makes it.
+ */
 function taskViewFor(ctx, snapshot, task) {
-    return buildTaskView(snapshotModel(snapshot), task, { abilities: abilitiesOf(snapshot), userId: ctx.user.id });
+    return buildTaskView(snapshotModel(snapshot), task, { abilities: abilitiesOf(snapshot, { forUser: false }), userId: ctx.user.id });
 }
 
 /** A short confirmation above a view, after a change. */

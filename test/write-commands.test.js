@@ -8,7 +8,6 @@ const { abilitiesOf } = require("../src/services/boards/abilities");
 const { snapshotModel } = require("../src/services/boards/boardData");
 const actions = require("../src/services/boards/taskActions");
 const panels = require("../src/ui/taskPanels");
-const { buildTaskView } = require("../src/ui/taskViews");
 const { decode } = require("../src/utils/customId");
 
 const NOW = new Date("2026-09-25T10:30:00Z");
@@ -127,32 +126,32 @@ test("labels, roles, moves and deletes send the right requests", async () => {
     assert.deepEqual(made[7].query, { archived: true });
 });
 
-test("the actions menu offers only what the user may do on this board", () => {
+test("the task menu offers everything the board allows, whoever ran the command", () => {
     const snapshot = snapshotFixture();
     const model = snapshotModel(snapshot);
     const task = model.task(100);
-    const optionsFor = (permissions, features) => {
-        const abilities = abilitiesOf({ ...snapshot, permissions, features: { ...snapshot.features, ...features } });
+    const offered = (features, board = snapshot.board) => {
+        const abilities = abilitiesOf({ ...snapshot, board, permissions: {}, features: { ...snapshot.features, ...features } },
+            { forUser: false });
         return panels.taskActions(model, task, abilities, "555").map((action) => action.value);
     };
 
-    const everything = Object.fromEntries(["EDIT_TASK", "MOVE_TASK", "DELETE_TASK", "ASSIGN_TASK_SELF", "ASSIGN_TASK_OTHERS",
-        "CREATE_TASK_COMMENT", "APPLY_LABEL_TO_TASK", "REMOVE_LABEL_FROM_TASK"].map((key) => [key, { allowed: true }]));
-    assert.deepEqual(optionsFor(everything),
-        ["edit", "move", "people", "roles", "labels", "priority", "due", "comment", "follow", "delete"]);
-    assert.deepEqual(optionsFor({ MOVE_TASK: { allowed: true }, ASSIGN_TASK_SELF: { allowed: true } }), ["move", "assignme", "follow"]);
-    assert.deepEqual(optionsFor(everything, { LABELS: false, PRIORITIES: false, DUE_DATES: false, COMMENTS: false, ASSIGNEES: false }),
-        ["edit", "move", "follow", "delete"]);
-    assert.deepEqual(optionsFor({}), ["follow"], "anyone who can see a task can follow it");
-    const archived = abilitiesOf({ ...snapshot, board: { ...snapshot.board, isArchived: true }, permissions: everything });
-    assert.deepEqual(panels.taskActions(model, task, archived, "555").map((action) => action.value), ["follow"],
-        "archived boards cannot be changed, only followed");
+    assert.deepEqual(offered({}),
+        ["edit", "move", "assignme", "people", "roles", "labels", "priority", "due", "comment", "follow", "delete"],
+        "no permissions at all, yet everything is offered: someone else in the channel may use it");
+    assert.deepEqual(offered({ LABELS: false, PRIORITIES: false, DUE_DATES: false, COMMENTS: false, ASSIGNEES: false }),
+        ["edit", "move", "follow", "delete"], "only what the board has switched off is left out");
+    assert.deepEqual(offered({}, { ...snapshot.board, isArchived: true }), ["follow"],
+        "an archived board cannot be changed by anyone, only followed");
     const following = snapshotModel({ ...snapshot, followedTaskIds: [100] });
+    const archived = abilitiesOf({ ...snapshot, board: { ...snapshot.board, isArchived: true } }, { forUser: false });
     assert.deepEqual(panels.taskActions(following, task, archived, "555").map((action) => action.value), ["unfollow"]);
 
-    const view = buildTaskView(model, task, { abilities: abilitiesOf({ ...snapshot, permissions: {} }) }).toJSON();
-    assert.ok(!JSON.stringify(view).includes("kc1:act:menu"), "no menu when nothing can be done");
+    const mine = abilitiesOf({ ...snapshot, permissions: { MOVE_TASK: { allowed: true } } });
+    assert.deepEqual(panels.taskActions(model, task, mine, "555").map((action) => action.value), ["move", "follow"],
+        "for one user, their own permissions still narrow it down");
 });
+
 
 test("every panel and form is valid for Discord", () => {
     const model = snapshotModel(snapshotFixture({ tasks: 40 }));

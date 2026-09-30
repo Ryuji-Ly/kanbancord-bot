@@ -46,6 +46,11 @@ function buildCommentPage({ board, task, comments, page, pages, total }) {
             .setCustomId(encode("task", "show", board.boardId, task.taskId))
             .setStyle(ButtonStyle.Secondary)
             .setLabel("Back to task"),
+        new ButtonBuilder()
+            .setCustomId(encode("comment", "add", board.boardId, task.taskId))
+            .setStyle(ButtonStyle.Primary)
+            .setLabel("Add comment")
+            .setDisabled(Boolean(board.isArchived)),
     ));
     return container;
 }

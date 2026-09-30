@@ -30,14 +30,17 @@ module.exports = {
     info: {
         subcommands: {
             list: {
-                description: "Lists every board in this server you can see, archived ones last.",
+                description: "Lists every board in this server you can see, archived ones last, with a menu to open one "
+                    + "and a button to create one.",
                 examples: ["/board list"],
             },
             view: {
-                description: "Shows each column with its first few tasks. Open a column from the menu to page "
-                    + "through all its tasks, then open a task from there.",
+                description: "Shows each column with its first few tasks, with menus to open a column or a task and "
+                    + "buttons to add a task or a column, edit the board or go back to all boards. A column has buttons "
+                    + "to add a task there, rename, move or delete it.",
                 examples: ["/board view board:Sprint"],
-                notes: "Start typing and pick the board from the list.",
+                notes: "Start typing and pick the board from the list. Anyone can use the buttons; whether they may "
+                    + "make the change is checked when they click.",
             },
             create: {
                 description: "Creates a board with To Do, In Progress and Done columns, set up with the server's "
