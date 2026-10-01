@@ -130,6 +130,8 @@ function snapshotModel(snapshot) {
     return {
         board: snapshot.board,
         features,
+        /** Whether tasks can have threads (a feed covers the board), whether they are on, and each task's thread. */
+        threads: snapshot.threads ?? { available: false, enabled: false, threadIds: {} },
         permissions: snapshot.permissions ?? {},
         columns,
         tasksIn,

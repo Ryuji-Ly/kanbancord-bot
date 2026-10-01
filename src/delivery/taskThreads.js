@@ -177,4 +177,4 @@ function forgetRecentThreads() {
     recent.clear();
 }
 
-module.exports = { deliverWithThread, forgetRecentThreads };
+module.exports = { deliverWithThread, forgetRecentThreads, rememberThread: remember };

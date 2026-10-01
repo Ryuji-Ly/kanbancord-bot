@@ -8,6 +8,7 @@ const {
 const { encode } = require("../utils/customId");
 const { truncate } = require("../utils/format");
 const { boardUrl, linkButton } = require("./boardViews");
+const { threadButton } = require("./threadViews");
 const { buildTaskCard } = require("./taskViews");
 
 /**
@@ -74,7 +75,14 @@ function buttonsRow(model, task) {
     if (!model.board.isArchived) {
         buttons.push(button("edit", "Edit"));
     }
-    buttons.push(button("follow", "Follow"), button("more", "More…"), linkButton("Open on website", boardUrl(model.board, task.taskId)));
+    buttons.push(button("follow", "Follow"), button("more", "More…"));
+    const thread = threadButton(model, task);
+    if (thread) {
+        buttons.push(thread);
+    }
+    if (buttons.length < 5) {
+        buttons.push(linkButton("Open on website", boardUrl(model.board, task.taskId)));
+    }
     return new ActionRowBuilder().addComponents(buttons);
 }
 

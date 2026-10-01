@@ -3,6 +3,7 @@ const { encode } = require("../utils/customId");
 const { describeMarkdown, discordTime, parseServerTime, plain, truncate } = require("../utils/format");
 const { appendDivider, appendFooter, appendText, buildContainer } = require("./containers");
 const { boardUrl, linkButton } = require("./boardViews");
+const { threadButton } = require("./threadViews");
 const { actionsRow } = require("./taskPanels");
 
 /** Discord shows at most 10 items in a gallery. */
@@ -104,7 +105,10 @@ function buildTaskView(model, task, { abilities, userId } = {}) {
         .setCustomId(encode("board", "open", board.boardId))
         .setStyle(ButtonStyle.Secondary)
         .setLabel("Board"));
-    buttons.push(linkButton("Open on website", boardUrl(board, task.taskId)));
+    buttons.push(threadButton(model, task) ?? linkButton("Open on website", boardUrl(board, task.taskId)));
+    if (buttons.length < 5 && model.threads?.available) {
+        buttons.push(linkButton("Open on website", boardUrl(board, task.taskId)));
+    }
     const actions = abilities ? actionsRow(model, task, abilities, userId) : null;
     if (actions) {
         container.addActionRowComponents(actions);

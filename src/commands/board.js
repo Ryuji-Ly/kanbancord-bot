@@ -110,6 +110,8 @@ module.exports = {
                     "/board threads board:Sprint enabled:False",
                 ],
                 notes: "Needs permission to edit the board's details, and a feed for the board (`/kanbancord feed`). "
+                    + "Tasks also get a Discuss in thread button, which opens a task's thread, making it at once if "
+                    + "needed; with threads off, it offers to switch them on to those who may. "
                     + "Public by default; private threads include the task's creator and assignees and need a text "
                     + "channel. Updates go to both the thread and the channel unless you choose otherwise. Comments made "
                     + "in KanbanCord are posted in the thread; messages in the thread stay in Discord.",
