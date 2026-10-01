@@ -2,7 +2,6 @@ require("./setup");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { snapshotFixture, textLength } = require("./fixtures");
 const { STEPS, buildGuideOverview, buildGuideStep } = require("../src/ui/guideViews");
 const { buildFeaturesPanel, featureChanges } = require("../src/ui/featureViews");
 const { guideState } = require("../src/services/guide/guideState");
@@ -27,18 +26,25 @@ function assertValid(container) {
 }
 
 test("every guide page is valid for Discord, whatever the server has", () => {
-    for (const state of [{}, { features: NONE, boards: 0, tasks: 0, feeds: 0 }, { features: ALL, boards: 3, tasks: 9, feeds: 1 }]) {
+    const everything = { features: ALL, boards: 3, columns: true, tasks: true, taskDetails: true, updates: true, notifications: true };
+    for (const state of [{}, { features: NONE, boards: 0 }, everything]) {
         assertValid(buildGuideOverview(state));
         STEPS.forEach((_, index) => assertValid(buildGuideStep(index, state)));
     }
 });
 
-test("the overview ticks off what the server has done, and nothing it could not find out", () => {
-    const fresh = assertValid(buildGuideOverview({ features: NONE, boards: 0, tasks: 0 }));
+test("every step can be ticked, and the last one once all the others are", () => {
+    const fresh = assertValid(buildGuideOverview({ features: NONE, boards: 0 }));
     assert.ok(!fresh.includes("✅"));
-    const going = assertValid(buildGuideOverview({ features: { ...NONE, DUE_DATES: true }, boards: 1, tasks: 4, feeds: 2 }));
-    assert.equal(going.match(/✅/g).length, 4, "features, a board, tasks and a feed");
+    const going = assertValid(buildGuideOverview({ features: { ...NONE, DUE_DATES: true }, boards: 1, tasks: true, updates: true }));
+    assert.equal(going.match(/✅/g).length, 5, "how it works and a board (a board exists), features, tasks, updates");
     assert.ok(going.includes("kc1:guide:page:0"), "Start opens the first step");
+
+    const all = { features: { ...NONE, LABELS: true }, boards: 2, columns: true, tasks: true, taskDetails: true,
+        updates: true, notifications: true };
+    assert.ok(STEPS.every((step) => step.done?.(all)), "nothing is left that cannot be ticked");
+    assert.ok(!STEPS.at(-1).done({ ...all, notifications: false }), "the last step waits for the others");
+    assert.equal(assertValid(buildGuideOverview(all)).match(/✅/g).length, STEPS.length);
 });
 
 test("steps follow the server's features: the task form's fields, and how to turn features on", () => {
@@ -66,28 +72,24 @@ test("the features panel shows simple mode, and its menu sets exactly the chosen
     assert.deepEqual(featureChanges(["LABELS"]), { ...NONE, LABELS: true });
 });
 
-test("the guide's ticks are found out as the user, and skipped where they may not look", async () => {
-    const snapshot = snapshotFixture({ tasks: 2 });
-    const ctx = {
+test("the guide's ticks come from one answer, found out as the user; what fails is left unticked", async () => {
+    const progress = { features: true, boards: 1, columns: false, tasks: true, taskDetails: false, updates: true,
+        notifications: false };
+    const ctx = (fail) => ({
         guildId: "999",
         user: { id: `guide-${Math.random()}` },
         api: {
             get: async (path) => {
-                if (path === "/notifications") {
-                    throw Object.assign(new Error("Forbidden"), { status: 403 });
+                if (path === fail) {
+                    throw Object.assign(new Error("Unavailable"), { status: 503 });
                 }
-                if (path === "/features") {
-                    return { ...NONE, COMMENTS: true };
-                }
-                if (path === "/boards") {
-                    return { content: [snapshot.board] };
-                }
-                return snapshot;
+                return path === "/features" ? { ...NONE, COMMENTS: true } : progress;
             },
         },
-    };
-    assert.deepEqual(await guideState(ctx), { features: { ...NONE, COMMENTS: true }, boards: 1, tasks: 2 },
-        "no feeds count for someone who may not see the server's notifications");
+    });
+    assert.deepEqual(await guideState(ctx(null)), { features: { ...NONE, COMMENTS: true }, boards: 1, columns: false,
+        tasks: true, taskDetails: false, updates: true, notifications: false });
+    assert.deepEqual(await guideState(ctx("/guide")), { features: { ...NONE, COMMENTS: true } });
 });
 
 test("open permissions: shown on the features panel, asked before turning on, kept out of Everything on", async () => {

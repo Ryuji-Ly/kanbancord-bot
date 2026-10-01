@@ -13,7 +13,8 @@ const { appendDivider, appendFooter, appendText, buildContainer } = require("./c
  * What the server has done so far, as far as the user can see. Anything that could not be found out
  * is undefined, and its step is simply not ticked.
  *
- * @typedef {{ features?: Record<string, boolean>, boards?: number, tasks?: number, feeds?: number }} GuideState
+ * @typedef {{ features?: Record<string, boolean>, boards?: number, columns?: boolean, tasks?: boolean,
+ *   taskDetails?: boolean, updates?: boolean, notifications?: boolean }} GuideState
  */
 
 const on = (state, key) => Boolean(state.features?.[key]);
@@ -42,6 +43,7 @@ const STEPS = [
         key: "start",
         title: "How KanbanCord works",
         summary: "Boards, columns and tasks, all from Discord",
+        done: (state) => state.boards > 0,
         body: () => [
             "KanbanCord puts kanban boards in your server. A **board** has **columns** (To Do, In Progress, Done...), "
                 + "and **tasks** move from column to column as work gets done.",
@@ -88,6 +90,7 @@ const STEPS = [
         key: "columns",
         title: "Shape the columns",
         summary: "`/column add`, `rename`, `move`, `delete`",
+        done: (state) => Boolean(state.columns),
         body: () => [
             "Make the columns match how your team works:",
             "- `/column add board:Sprint name:Review` adds one at the end\n"
@@ -103,7 +106,7 @@ const STEPS = [
         key: "tasks",
         title: "Add and move tasks",
         summary: "`/task create`, `/task move`",
-        done: (state) => state.tasks > 0,
+        done: (state) => Boolean(state.tasks),
         body: (state) => [
             `\`/task create board:Sprint\` opens a form for the title and description${formFields(state)}. `
                 + "Add `column:` to start it somewhere other than the first column.",
@@ -120,6 +123,7 @@ const STEPS = [
         key: "details",
         title: "People, due dates, priorities and labels",
         summary: "`/task assign`, `due`, `priority`, `label`",
+        done: (state) => Boolean(state.taskDetails),
         body: (state) => [
             ifOn(state, "ASSIGNEES", "**People**: `/task assign` assigns you, someone, or a whole role; "
                 + "`/task unassign` takes them off. Assigned people hear about their tasks.", "Assignees"),
@@ -137,7 +141,7 @@ const STEPS = [
         key: "updates",
         title: "Keep everyone up to date",
         summary: "A board post, or a feed",
-        done: (state) => state.feeds > 0,
+        done: (state) => Boolean(state.updates),
         body: () => [
             "Two ways to show your team what is going on. Most servers use one of them:",
             "**A board post** (`/board post`) is one message showing the whole board, and it updates itself whenever "
@@ -163,6 +167,7 @@ const STEPS = [
         key: "you",
         title: "Your own notifications",
         summary: "`/notifications`, following tasks",
+        done: (state) => Boolean(state.notifications),
         body: () => [
             "The bot can message you directly about tasks you are **assigned to**, **created** or **follow**. Follow "
                 + "any task from its menu in `/task view`, or with **Follow** on a feed post.",
@@ -175,6 +180,8 @@ const STEPS = [
         key: "more",
         title: "That's it",
         summary: "Where to go from here",
+        // Every other step done.
+        done: (state) => STEPS.every((step) => step.key === "more" || step.done(state)),
         body: () => [
             "That covers everyday use. `/help` lists every command with examples, and `/help command:task create` "
                 + "explains one in detail.",
