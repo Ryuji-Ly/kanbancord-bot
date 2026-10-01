@@ -2,6 +2,7 @@ require("./setup");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
+const { textLength } = require("./fixtures");
 const { STEPS, buildGuideOverview, buildGuideStep } = require("../src/ui/guideViews");
 const { buildFeaturesPanel, featureChanges } = require("../src/ui/featureViews");
 const { guideState } = require("../src/services/guide/guideState");
