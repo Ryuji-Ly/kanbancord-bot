@@ -49,10 +49,10 @@ function sameBoards(feed, boardIds) {
 /**
  * The feed for a channel and a board (or every board). If the channel already has a feed for exactly
  * that, it is updated rather than doubled; otherwise a new one starts with the default events. Its
- * events and mentions are changed on the website.
+ * events and mentions are changed in its editor (`/kanbancord settings`) or on the website.
  *
  * @param {boolean | null} interactive null: as it was for an existing feed, on for a new one
- * @returns {Promise<{ board: object | null, updated: boolean, interactive: boolean }>}
+ * @returns {Promise<{ feedId: number, board: object | null, updated: boolean, interactive: boolean }>}
  */
 async function saveFeed(ctx, channelId, boardInput, interactive = null) {
     const board = boardInput ? await resolveBoard(ctx, boardInput) : null;
@@ -63,10 +63,10 @@ async function saveFeed(ctx, channelId, boardInput, interactive = null) {
         const saved = await ctx.api.put(`/notifications/feeds/${existing.feedId}`, {
             body: interactive === null ? {} : { interactive },
         });
-        return { board, updated: true, interactive: Boolean(saved?.interactive ?? existing.interactive) };
+        return { feedId: existing.feedId, board, updated: true, interactive: Boolean(saved?.interactive ?? existing.interactive) };
     }
     const saved = await ctx.api.post("/notifications/feeds", { body: { channelId, boardIds, interactive: interactive ?? true } });
-    return { board, updated: false, interactive: Boolean(saved?.interactive ?? interactive ?? true) };
+    return { feedId: saved?.feedId, board, updated: false, interactive: Boolean(saved?.interactive ?? interactive ?? true) };
 }
 
 module.exports = { DM_MODES, SERVER_MODES, mySettings, setDmMode, setServerMode, serverSettings, setAuditChannel, saveFeed };

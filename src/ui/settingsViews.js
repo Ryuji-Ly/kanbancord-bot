@@ -28,12 +28,18 @@ function alsoAbout(settings) {
     return also.length > 0 ? `\n-# Also ${also.join(" and ")}.` : "\n-# Not tasks you follow.";
 }
 
+/** An event as it concerns you. */
+function eventLabel(event) {
+    return event.key === "USER_ASSIGNED" ? "I am assigned" : event.key === "USER_UNASSIGNED" ? "I am unassigned" : event.label;
+}
+
 /** What you get by direct message, with this server's setting. */
 function buildMyNotificationsPanel(settings, guildId, guildName) {
-    const events = settings.catalogue
-        .flatMap((category) => category.events)
-        .filter((event) => event.canDm && settings.events[event.key])
-        .map((event) => event.key === "USER_ASSIGNED" ? "I am assigned" : event.key === "USER_UNASSIGNED" ? "I am unassigned" : event.label);
+    const dmEvents = settings.catalogue
+        .flatMap((category) => category.events.map((event) => ({ ...event, category: category.label })))
+        .filter((event) => event.canDm)
+        .slice(0, 25);
+    const events = dmEvents.filter((event) => settings.events[event.key]).map(eventLabel);
     const serverMode = settings.servers[guildId] ?? "DEFAULT";
 
     const container = buildContainer({
@@ -59,13 +65,34 @@ function buildMyNotificationsPanel(settings, guildId, guildName) {
             .addOptions(Object.entries(SERVER_MODE_LABELS).map(([value, option]) => ({
                 value, ...option, label: `This server: ${option.label}`.slice(0, 100), default: serverMode === value,
             })))),
-        new ActionRowBuilder().addComponents(linkButton("Choose events on the website", webAppUrl)),
+        new ActionRowBuilder().addComponents(new StringSelectMenuBuilder()
+            .setCustomId(encode("ntf", "events"))
+            .setPlaceholder("What I'm told about")
+            .setDisabled(settings.dmMode === "NEVER")
+            .setMinValues(0)
+            .setMaxValues(dmEvents.length)
+            .addOptions(dmEvents.map((event) => ({
+                label: eventLabel(event).slice(0, 100),
+                value: event.key,
+                description: event.category.slice(0, 100),
+                default: Boolean(settings.events[event.key]),
+            })))),
+        new ActionRowBuilder().addComponents(new StringSelectMenuBuilder()
+            .setCustomId(encode("ntf", "also"))
+            .setPlaceholder("Besides tasks I'm assigned to or created")
+            .setDisabled(settings.dmMode === "NEVER")
+            .setMinValues(0)
+            .setMaxValues(2)
+            .addOptions(
+                { label: "Tasks I follow", value: "followed", default: settings.includeFollowed !== false },
+                { label: "Tasks I commented on", value: "commented", default: Boolean(settings.includeCommented) },
+            )),
     );
-    return appendFooter(container, "Pick which events in Settings → Notifications on the website.");
+    return appendFooter(container, "Menus save as you change them. The same settings are in Settings → Notifications on the website.");
 }
 
-/** Where the bot posts about this server. */
-function buildServerNotificationsPanel({ settings, boards }) {
+/** Where the bot posts about this server, with a menu to change a feed. */
+function buildServerNotificationsPanel({ settings, boards }, notice) {
     const channelName = (id) => {
         const channel = settings.channels.find((entry) => entry.channelId === id);
         return channel ? `#${plain(channel.name, 60)}` : "a channel that no longer exists";
@@ -74,6 +101,10 @@ function buildServerNotificationsPanel({ settings, boards }) {
     const categories = new Map(settings.catalogue.map((category) => [category.key, category]));
 
     const container = buildContainer({ title: "Server notifications" });
+    if (notice) {
+        appendText(container, notice);
+        appendDivider(container);
+    }
     appendText(container, `**Audit log channel:** ${settings.auditChannelId ? channelName(settings.auditChannelId) : "none"}`);
     appendDivider(container);
     if (settings.feeds.length === 0) {
@@ -95,8 +126,21 @@ function buildServerNotificationsPanel({ settings, boards }) {
         });
         appendText(container, `**Update feeds**\n${lines.join("\n")}`);
     }
+    if (settings.feeds.length > 0) {
+        container.addActionRowComponents(new ActionRowBuilder().addComponents(new StringSelectMenuBuilder()
+            .setCustomId(encode("feedcfg", "open"))
+            .setPlaceholder("Change a feed: its events, mentions and boards")
+            .addOptions(settings.feeds.slice(0, 25).map((feed) => ({
+                label: `${channelName(feed.channelId)}`.slice(0, 100),
+                value: String(feed.feedId),
+                description: (feed.boardIds.length === 0
+                    ? "Every board"
+                    : feed.boardIds.map((id) => boardNames.get(id) ?? `board #${id}`).join(", ")).slice(0, 100),
+            })))));
+    }
     container.addActionRowComponents(new ActionRowBuilder().addComponents(linkButton("Edit on the website", webAppUrl)));
-    return appendFooter(container, "Choose events and mentions per feed in Server settings → Notifications on the website.");
+    return appendFooter(container, "Add a feed with /kanbancord feed. A board's managers can change a feed for their "
+        + "board with /board notifications, and give tasks threads with /board threads.");
 }
 
 /**
