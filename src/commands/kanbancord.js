@@ -1,8 +1,17 @@
-const { ChannelType, InteractionContextType, PermissionFlagsBits, SlashCommandBuilder } = require("discord.js");
+const {
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    ChannelType,
+    InteractionContextType,
+    PermissionFlagsBits,
+    SlashCommandBuilder,
+} = require("discord.js");
 const { respondBoardOptions } = require("../services/boards/autocomplete");
 const { requireCanPostIn } = require("../services/boards/boardPosts");
 const { saveFeed, serverSettings, setAuditChannel } = require("../services/settings/notificationSettings");
 const { successContainer } = require("../ui/containers");
+const { encode } = require("../utils/customId");
 const { loadFeatures } = require("../services/settings/features");
 const { buildFeaturesPanel } = require("../ui/featureViews");
 const { buildServerNotificationsPanel } = require("../ui/settingsViews");
@@ -44,8 +53,9 @@ module.exports = {
                     + "menu, after a warning; they cannot be on together with custom permissions.",
             },
             settings: {
-                description: "Shows where the bot posts about this server: the audit log channel and each update feed. "
-                    + "Only you see it.",
+                description: "Shows where the bot posts about this server: the audit log channel and each update feed, "
+                    + "with a menu to change a feed: which events it posts, which of them mention the people involved, "
+                    + "which boards it covers, whether posts have buttons, or delete it. Only you see it.",
                 examples: ["/kanbancord settings"],
             },
             "audit-channel": {
@@ -59,8 +69,8 @@ module.exports = {
                 examples: ["/kanbancord feed channel:#updates", "/kanbancord feed channel:#design board:Design interactive:False"],
                 notes: "If the channel already has a feed for the same board (or for every board), that feed is "
                     + "updated instead of adding another; a different channel or board adds a new feed. Leaving out "
-                    + "interactive keeps an existing feed's setting. Choose events and which of them mention people in "
-                    + "Server settings → Notifications on the website. You are never pinged or messaged about your own "
+                    + "interactive keeps an existing feed's setting. Choose events and which of them mention people with "
+                    + "the button on the reply, or later in `/kanbancord settings`. You are never pinged or messaged about your own "
                     + "changes. The bot must be able to view the channel and send messages there.",
             },
         },
@@ -90,7 +100,7 @@ module.exports = {
             case "feed": {
                 const channel = options.getChannel("channel", true);
                 requireCanPostIn(ctx, channel);
-                const { board, updated, interactive } = await saveFeed(ctx, channel.id, options.getString("board"),
+                const { feedId, board, updated, interactive } = await saveFeed(ctx, channel.id, options.getString("board"),
                     options.getBoolean("interactive"));
                 const about = board ? `**${board.name}**` : "every board";
                 const style = interactive
@@ -99,7 +109,15 @@ module.exports = {
                 const what = updated
                     ? `Updated the feed for ${about} in <#${channel.id}>. `
                     : `Updates about ${about} will be posted in <#${channel.id}>. `;
-                return ctx.reply(successContainer(null, `${what}${style}Choose its events and mentions on the website.`));
+                const reply = successContainer(null, `${what}${style}It posts the usual events and mentions the people `
+                    + "involved; change that with the button below.");
+                if (feedId) {
+                    reply.addActionRowComponents(new ActionRowBuilder().addComponents(new ButtonBuilder()
+                        .setCustomId(encode("feedcfg", "open", feedId))
+                        .setStyle(ButtonStyle.Secondary)
+                        .setLabel("Choose events and mentions")));
+                }
+                return ctx.reply(reply);
             }
         }
     },

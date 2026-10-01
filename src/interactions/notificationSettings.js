@@ -13,6 +13,15 @@ registerComponentHandler("ntf", async (ctx, { action }) => {
         await setDmMode(ctx, choice);
     } else if (action === "server") {
         await setServerMode(ctx, choice);
+    } else if (action === "events") {
+        // Every event the menu offered: those picked on, the rest off.
+        const offered = (await mySettings(ctx)).catalogue.flatMap((category) => category.events)
+            .filter((event) => event.canDm).slice(0, 25).map((event) => event.key);
+        const picked = new Set(ctx.interaction.values ?? []);
+        await ctx.api.myNotifications.update({ events: Object.fromEntries(offered.map((key) => [key, picked.has(key)])) });
+    } else if (action === "also") {
+        const picked = new Set(ctx.interaction.values ?? []);
+        await ctx.api.myNotifications.update({ includeFollowed: picked.has("followed"), includeCommented: picked.has("commented") });
     } else {
         throw new UserFacingError("Not available", "That setting is not available here.");
     }

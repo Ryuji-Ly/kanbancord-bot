@@ -148,9 +148,15 @@ const STEPS = [
                 + "to move, assign or edit it right there. The place to follow *what just happened*.",
             "They also work together, say a board post in #board and a feed in #updates. For a record of every change "
                 + "that pings nobody, `/kanbancord audit-channel` mirrors the audit log to a channel.",
-            "With a feed, `/board threads` can also give each task its own thread for discussion in the feed's channel: "
+            "**Setting up a feed**, in this order:\n"
+                + "1. `/kanbancord feed channel:#updates` adds it (add `board:` for one board).\n"
+                + "2. **Choose events and mentions** on the reply, or later `/kanbancord settings`, picks what it posts "
+                + "and which posts mention the people involved.\n"
+                + "3. `/board notifications` changes that for one board only.\n"
+                + "4. `/board threads board:... enabled:True` gives each task its own thread in the feed's channel: "
                 + "public, or private for the task's creator and assignees.",
         ],
+        link: { label: "Feeds and threads guide", path: "/guides/feeds-and-threads" },
     },
     {
         key: "you",
@@ -159,8 +165,9 @@ const STEPS = [
         body: () => [
             "The bot can message you directly about tasks you are **assigned to**, **created** or **follow**. Follow "
                 + "any task from its menu in `/task view`, or with **Follow** on a feed post.",
-            "`/notifications` chooses when: always, only when a channel did not already mention you, or never, and "
-                + "how much from this server. You are never told about your own changes.",
+            "`/notifications` chooses when (always, only when a channel did not already mention you, or never), how "
+                + "much from this server, and which events you hear about. Every direct message also has a button to "
+                + "stop messages from its server. You are never told about your own changes.",
         ],
     },
     {
@@ -225,6 +232,10 @@ function buildGuideStep(index, state) {
     const done = step.done?.(state) ? " ✅" : "";
     const container = buildContainer({ title: `${index + 1}. ${step.title}${done}` });
     appendText(container, step.body(state).filter(Boolean).join("\n\n"));
+    if (step.link) {
+        container.addActionRowComponents(new ActionRowBuilder().addComponents(
+            linkButton(step.link.label, `${webAppUrl.replace(/\/$/, "")}${step.link.path}`)));
+    }
     container.addActionRowComponents(...navigation(index));
     return appendFooter(container, `Step ${index + 1} of ${STEPS.length} · only you can see this guide`);
 }

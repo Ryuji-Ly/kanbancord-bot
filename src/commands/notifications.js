@@ -9,10 +9,12 @@ module.exports = {
         .setContexts(InteractionContextType.Guild),
 
     info: {
-        description: "Shows what the bot sends you by direct message, and lets you change when it does and how "
-            + "much this server may message you. Only you see it.",
+        description: "Shows what the bot sends you by direct message, and lets you change it: when it messages you, "
+            + "how much this server may, which events you hear about, and whether that includes tasks you follow or "
+            + "commented on. Only you see it.",
         examples: ["/notifications"],
-        notes: "Which events you hear about is chosen on the website, in Settings → Notifications.",
+        notes: "The same settings are in Settings → Notifications on the website. Every direct message also has a "
+            + "button to stop messages from its server.",
     },
 
     /** @param {import("../utils/interactionContext").InteractionContext} ctx */

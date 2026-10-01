@@ -3,6 +3,9 @@ const { respondBoardOptions } = require("../services/boards/autocomplete");
 const { boardListView, boardView } = require("../services/boards/viewService");
 const flows = require("../services/boards/commandService");
 const { boardThreads } = require("../services/boards/threadSettings");
+const { resolveBoard } = require("../services/boards/boardData");
+const { boardFeeds } = require("../interactions/feedSettings");
+const { buildBoardFeedList } = require("../ui/feedEditorViews");
 const { boardOption } = require("../utils/commandOptions");
 
 module.exports = {
@@ -27,6 +30,9 @@ module.exports = {
             sub.setName("restore").setDescription("Bring back an archived board").addStringOption(boardOption()))
         .addSubcommand((sub) =>
             sub.setName("post").setDescription("Post a board here that keeps itself up to date").addStringOption(boardOption()))
+        .addSubcommand((sub) =>
+            sub.setName("notifications").setDescription("Change what the server's feeds post about a board")
+                .addStringOption(boardOption()))
         .addSubcommand((sub) =>
             sub.setName("threads").setDescription("A thread per task: show the board's setting, or change it")
                 .addStringOption(boardOption())
@@ -85,6 +91,14 @@ module.exports = {
                 notes: "Needs permission to edit the board's details. If some people who can see this channel cannot "
                     + "see the board, you are asked first. To stop a post, delete its message.",
             },
+            notifications: {
+                description: "Lists the update feeds that post about the board, and lets you change, for this board "
+                    + "only, which events each posts and which of them mention people. The feed's own settings stay as "
+                    + "they are for other boards.",
+                examples: ["/board notifications board:Sprint"],
+                notes: "Needs permission to edit the board's details. Server managers add and change feeds with "
+                    + "`/kanbancord feed` and `/kanbancord settings`.",
+            },
             threads: {
                 description: "Gives each task on the board its own thread for discussion, in one of the board's update "
                     + "feed channels: started from the task's post there, or on its own. Threads follow the task's title "
@@ -123,6 +137,11 @@ module.exports = {
                 return flows.boardArchive(ctx, false);
             case "post":
                 return flows.boardPost(ctx);
+            case "notifications": {
+                await ctx.defer({ ephemeral: true });
+                const board = await resolveBoard(ctx, options.getString("board", true));
+                return ctx.reply(buildBoardFeedList(await boardFeeds(ctx, board.boardId)));
+            }
             case "threads":
                 await ctx.defer({ ephemeral: true });
                 return ctx.reply(await boardThreads(ctx, options.getString("board", true), {

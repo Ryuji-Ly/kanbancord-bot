@@ -37,7 +37,8 @@ test("the personal panel shows what you hear about, and offers this server's set
     const json = buildMyNotificationsPanel(settings, "999", "Test Server").toJSON();
     const text = JSON.stringify(json);
     assert.ok(text.includes("Task moved to another column, Due within a day (reminder), I am assigned"), text);
-    assert.ok(!text.includes("Task created"));
+    assert.ok(!/"value":"TASK_CREATED"[^}]*"default":true/.test(text), "offered in the menu, not chosen");
+    assert.ok(text.includes("kc1:ntf:events") && text.includes("kc1:ntf:also"));
     assert.ok(text.includes("Also tasks you follow and tasks you commented on"), "following is on unless switched off");
     const notFollowing = JSON.stringify(buildMyNotificationsPanel({ ...settings, includeFollowed: false, includeCommented: false },
         "999", "Test Server").toJSON());

@@ -47,7 +47,7 @@ test("usage lines come from the options: <required> and [optional]", () => {
     assert.throws(() => buildHelpDetail(commands, "board"), /always used with one of: \/board archive, \/board create/);
     assert.throws(() => buildHelpDetail(commands, "nope"), /There is no \/nope/);
     assert.deepEqual(helpChoices(commands, "board").map((choice) => choice.value),
-        ["board archive", "board create", "board edit", "board list", "board post", "board restore", "board threads", "board view"],
+        ["board archive", "board create", "board edit", "board list", "board notifications", "board post", "board restore", "board threads", "board view"],
         "commands with subcommands cannot be run alone, so they are not offered");
     const overview = JSON.stringify(buildHelp(commands).toJSON());
     assert.ok(!overview.includes("**/board**"));
