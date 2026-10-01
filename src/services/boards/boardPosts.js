@@ -57,6 +57,32 @@ function requireCanPost(ctx, channel) {
 }
 
 /**
+ * Refuses a channel chosen in a command option (a feed, the audit log channel) when the bot could not
+ * post there, saying what to give it. Checked against the bot's own permissions in that channel, not
+ * the one the command ran in. Lets it through when Discord has not told the bot about the channel.
+ */
+function requireCanPostIn(ctx, chosen) {
+    const guild = ctx.interaction.guild;
+    const channel = guild?.channels.cache.get(chosen.id);
+    const me = guild?.members.me;
+    const permissions = channel && me ? channel.permissionsFor(me) : null;
+    if (!permissions) {
+        return;
+    }
+    const where = `<#${chosen.id}>`;
+    const send = channel.isThread() ? PermissionFlagsBits.SendMessagesInThreads : PermissionFlagsBits.SendMessages;
+    const sendName = channel.isThread() ? "Send Messages in Threads" : "Send Messages";
+    if (!permissions.has(PermissionFlagsBits.ViewChannel)) {
+        throw new UserFacingError("Can't post there", `I can't see ${where}. Give me View Channel and ${sendName} `
+            + "there, or pick another channel.");
+    }
+    if (!permissions.has(send)) {
+        throw new UserFacingError("Can't post there", `I can see ${where} but I'm not allowed to send messages there. `
+            + `Give me ${sendName} there, or pick another channel.`);
+    }
+}
+
+/**
  * Who in the channel could not see the board, or null when everyone can. Asks as the user, who must
  * be allowed to post the board.
  */
@@ -93,4 +119,4 @@ async function interactionChannel(ctx) {
     return ctx.interaction.channel ?? ctx.client.channels.fetch(ctx.interaction.channelId).catch(() => null);
 }
 
-module.exports = { channelAudience, requireCanPost, hiddenAudience, postBoard, interactionChannel };
+module.exports = { channelAudience, requireCanPost, requireCanPostIn, hiddenAudience, postBoard, interactionChannel };
