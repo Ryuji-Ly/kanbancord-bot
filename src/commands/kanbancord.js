@@ -1,5 +1,6 @@
 const { ChannelType, InteractionContextType, PermissionFlagsBits, SlashCommandBuilder } = require("discord.js");
 const { respondBoardOptions } = require("../services/boards/autocomplete");
+const { requireCanPostIn } = require("../services/boards/boardPosts");
 const { saveFeed, serverSettings, setAuditChannel } = require("../services/settings/notificationSettings");
 const { successContainer } = require("../ui/containers");
 const { loadFeatures } = require("../services/settings/features");
@@ -78,6 +79,9 @@ module.exports = {
             }
             case "audit-channel": {
                 const channel = options.getChannel("channel");
+                if (channel) {
+                    requireCanPostIn(ctx, channel);
+                }
                 await setAuditChannel(ctx, channel?.id ?? null);
                 return ctx.reply(successContainer(null, channel
                     ? `Every change is now posted in <#${channel.id}>.`
@@ -85,6 +89,7 @@ module.exports = {
             }
             case "feed": {
                 const channel = options.getChannel("channel", true);
+                requireCanPostIn(ctx, channel);
                 const { board, updated, interactive } = await saveFeed(ctx, channel.id, options.getString("board"),
                     options.getBoolean("interactive"));
                 const about = board ? `**${board.name}**` : "every board";

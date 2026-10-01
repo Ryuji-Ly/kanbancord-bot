@@ -233,3 +233,45 @@ test("following from a feed post answers privately and toggles", async () => {
     assert.ok(again.some((request) => request.method === "DELETE" && request.url.endsWith("/tasks/100/follow")),
         "following already, so it unfollows");
 });
+
+test("a feed or audit channel the bot cannot post in is refused, saying what to give it", async () => {
+    const { PermissionsBitField, PermissionFlagsBits } = require("discord.js");
+    const { InteractionContext } = require("../src/utils/interactionContext");
+    const command = require("../src/commands/kanbancord");
+
+    const run = async (subcommand, granted) => {
+        const channel = {
+            id: "5",
+            isThread: () => false,
+            permissionsFor: () => new PermissionsBitField(granted),
+        };
+        const interaction = {
+            user: { id: "1" },
+            guildId: "999",
+            guild: { channels: { cache: new Map([["5", channel]]) }, members: { me: { id: "bot" } } },
+            options: {
+                getSubcommand: () => subcommand,
+                getChannel: () => ({ id: "5" }),
+                getString: () => null,
+                getBoolean: () => null,
+            },
+            deferred: false,
+            replied: false,
+            async deferReply() { this.deferred = true; },
+            async editReply() {},
+        };
+        return command.execute(new InteractionContext(interaction));
+    };
+
+    const originalFetch = global.fetch;
+    let called = false;
+    global.fetch = async () => { called = true; throw new Error("no API call expected"); };
+    try {
+        await assert.rejects(run("feed", []), /I can't see <#5>\. Give me View Channel and Send Messages there, or pick another channel/);
+        await assert.rejects(run("audit-channel", [PermissionFlagsBits.ViewChannel]),
+            /not allowed to send messages there\. Give me Send Messages there, or pick another channel/);
+        assert.equal(called, false, "nothing is saved");
+    } finally {
+        global.fetch = originalFetch;
+    }
+});
