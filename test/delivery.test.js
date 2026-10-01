@@ -105,6 +105,7 @@ test("audit posts ping nobody; direct messages need no pings and explain themsel
     assert.ok(dmText.includes("Sprint in Test Server") && dmText.includes("Settings → Notifications"));
     assert.ok(!dmText.includes("created it"), "only the entries meant for this person");
     assert.ok(dmText.includes("assigned you") && !dmText.includes(`<@${MIA}>`), "written to the person");
+    assert.ok(dmText.includes("kc1:dm:server:999:NONE"), "a way to stop them, right in the message");
 
     const deleted = buildFeedMessage({ ...plan, task: { taskId: 100, title: "Gone", deleted: true } }, plan.channels[0]);
     const deletedText = JSON.stringify(deleted.components[0].toJSON());

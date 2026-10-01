@@ -1,4 +1,4 @@
-const { ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require("discord.js");
 const { webAppUrl } = require("../config/env");
 const { encode } = require("../utils/customId");
 const { plain } = require("../utils/format");
@@ -99,4 +99,37 @@ function buildServerNotificationsPanel({ settings, boards }) {
     return appendFooter(container, "Choose events and mentions per feed in Server settings → Notifications on the website.");
 }
 
-module.exports = { buildMyNotificationsPanel, buildServerNotificationsPanel };
+/**
+ * The answer to the opt-out button on a direct message: what is now off, with a way back, and a way to
+ * stop direct messages from every server.
+ *
+ * @param {{ serverId: string, serverName: string | null, serverMode: string, dmMode: string, undo: string[] | null }} state
+ *   `undo` is the custom id arguments that put back what was just changed
+ */
+function buildDmOptOutPanel({ serverId, serverName, serverMode, dmMode, undo }) {
+    const server = serverName ? `**${plain(serverName, 60)}**` : "this server";
+    let body;
+    if (dmMode === "NEVER") {
+        body = "**Direct messages are off for every server.** Turn them back on with `/notifications` in any server.";
+    } else if (serverMode === "NONE") {
+        body = `**You won't get direct messages about ${server} any more.** Other servers still message you.`;
+    } else {
+        body = `**Direct messages about ${server} are back on.**`;
+    }
+    const container = buildContainer({ title: "Your notifications", body });
+    const row = new ActionRowBuilder();
+    if (undo) {
+        row.addComponents(new ButtonBuilder().setCustomId(encode("dm", ...undo)).setStyle(ButtonStyle.Secondary).setLabel("Undo"));
+    }
+    if (dmMode !== "NEVER") {
+        row.addComponents(new ButtonBuilder()
+            .setCustomId(encode("dm", "all", serverId, "NEVER"))
+            .setStyle(ButtonStyle.Danger)
+            .setLabel("Stop all direct messages"));
+    }
+    row.addComponents(linkButton("Choose what you get", webAppUrl));
+    container.addActionRowComponents(row);
+    return appendFooter(container, "Only you see this. You can change it any time with /notifications in a server.");
+}
+
+module.exports = { buildMyNotificationsPanel, buildServerNotificationsPanel, buildDmOptOutPanel };
