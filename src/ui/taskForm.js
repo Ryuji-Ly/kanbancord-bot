@@ -60,15 +60,24 @@ function extraFields(model) {
 }
 
 /**
- * @param {{ customId: string, model: object, chooseColumn?: boolean }} options `chooseColumn` asks
- *   which column (for a board post); otherwise the column is part of the custom id
+ * @param {{ customId: string, model: object, chooseColumn?: boolean, prefill?: { title?: string, description?: string } }} options
+ *   `chooseColumn` asks which column (for a board post); otherwise the column is part of the custom id.
+ *   `prefill` starts the title and description off (a task made from a message).
  */
-function newTaskModal({ customId, model, chooseColumn = false }) {
+function newTaskModal({ customId, model, chooseColumn = false, prefill = {} }) {
+    const title = new TextInputBuilder()
+        .setCustomId("title").setStyle(TextInputStyle.Short).setMaxLength(TITLE_MAX).setRequired(true);
+    const description = new TextInputBuilder()
+        .setCustomId("description").setStyle(TextInputStyle.Paragraph).setMaxLength(DESCRIPTION_MAX).setRequired(false);
+    if (prefill.title) {
+        title.setValue(prefill.title.slice(0, TITLE_MAX));
+    }
+    if (prefill.description) {
+        description.setValue(prefill.description.slice(0, DESCRIPTION_MAX));
+    }
     const fields = [
-        new LabelBuilder().setLabel("Title").setTextInputComponent(new TextInputBuilder()
-            .setCustomId("title").setStyle(TextInputStyle.Short).setMaxLength(TITLE_MAX).setRequired(true)),
-        new LabelBuilder().setLabel("Description").setTextInputComponent(new TextInputBuilder()
-            .setCustomId("description").setStyle(TextInputStyle.Paragraph).setMaxLength(DESCRIPTION_MAX).setRequired(false)),
+        new LabelBuilder().setLabel("Title").setTextInputComponent(title),
+        new LabelBuilder().setLabel("Description").setTextInputComponent(description),
     ];
     if (chooseColumn) {
         fields.push(new LabelBuilder().setLabel("Column").setStringSelectMenuComponent(new StringSelectMenuBuilder()
