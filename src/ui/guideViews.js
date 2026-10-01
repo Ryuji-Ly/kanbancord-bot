@@ -154,7 +154,8 @@ const STEPS = [
                 + "and which posts mention the people involved.\n"
                 + "3. `/board notifications` changes that for one board only.\n"
                 + "4. `/board threads board:... enabled:True` gives each task its own thread in the feed's channel: "
-                + "public, or private for the task's creator and assignees.",
+                + "public, or private for the task's creator and assignees. **Discuss in thread** on a task opens "
+                + "its thread right away.",
         ],
         link: { label: "Feeds and threads guide", path: "/guides/feeds-and-threads" },
     },
