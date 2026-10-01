@@ -1,7 +1,8 @@
-const { SlashCommandBuilder, InteractionContextType } = require("discord.js");
+const { ChannelType, SlashCommandBuilder, InteractionContextType } = require("discord.js");
 const { respondBoardOptions } = require("../services/boards/autocomplete");
 const { boardListView, boardView } = require("../services/boards/viewService");
 const flows = require("../services/boards/commandService");
+const { boardThreads } = require("../services/boards/threadSettings");
 const { boardOption } = require("../utils/commandOptions");
 
 module.exports = {
@@ -25,7 +26,23 @@ module.exports = {
         .addSubcommand((sub) =>
             sub.setName("restore").setDescription("Bring back an archived board").addStringOption(boardOption()))
         .addSubcommand((sub) =>
-            sub.setName("post").setDescription("Post a board here that keeps itself up to date").addStringOption(boardOption())),
+            sub.setName("post").setDescription("Post a board here that keeps itself up to date").addStringOption(boardOption()))
+        .addSubcommand((sub) =>
+            sub.setName("threads").setDescription("A thread per task: show the board's setting, or change it")
+                .addStringOption(boardOption())
+                .addBooleanOption((option) => option.setName("enabled").setDescription("Give each task its own thread"))
+                .addChannelOption((option) => option.setName("channel")
+                    .setDescription("One of the board's feed channels, where the threads go")
+                    .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement))
+                .addBooleanOption((option) => option.setName("private")
+                    .setDescription("Private threads: only the task's creator and assignees (public if left off)"))
+                .addStringOption((option) => option.setName("updates")
+                    .setDescription("Where a task's updates go once it has a thread")
+                    .addChoices(
+                        { name: "The thread and the channel", value: "BOTH" },
+                        { name: "Only the thread", value: "THREAD" },
+                        { name: "Only the channel", value: "CHANNEL" },
+                    ))),
 
     info: {
         subcommands: {
@@ -68,6 +85,21 @@ module.exports = {
                 notes: "Needs permission to edit the board's details. If some people who can see this channel cannot "
                     + "see the board, you are asked first. To stop a post, delete its message.",
             },
+            threads: {
+                description: "Gives each task on the board its own thread for discussion, in one of the board's update "
+                    + "feed channels: started from the task's post there, or on its own. Threads follow the task's title "
+                    + "and are archived when the task is deleted or archived. With no options, shows the setting.",
+                examples: [
+                    "/board threads board:Sprint",
+                    "/board threads board:Sprint enabled:True",
+                    "/board threads board:Sprint private:True updates:Only the thread",
+                    "/board threads board:Sprint enabled:False",
+                ],
+                notes: "Needs permission to edit the board's details, and a feed for the board (`/kanbancord feed`). "
+                    + "Public by default; private threads include the task's creator and assignees and need a text "
+                    + "channel. Updates go to both the thread and the channel unless you choose otherwise. Comments made "
+                    + "in KanbanCord are posted in the thread; messages in the thread stay in Discord.",
+            },
         },
     },
 
@@ -91,6 +123,14 @@ module.exports = {
                 return flows.boardArchive(ctx, false);
             case "post":
                 return flows.boardPost(ctx);
+            case "threads":
+                await ctx.defer({ ephemeral: true });
+                return ctx.reply(await boardThreads(ctx, options.getString("board", true), {
+                    enabled: options.getBoolean("enabled"),
+                    channelId: options.getChannel("channel")?.id ?? null,
+                    privateThreads: options.getBoolean("private"),
+                    updates: options.getString("updates"),
+                }));
         }
     },
 

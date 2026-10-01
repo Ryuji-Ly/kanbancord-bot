@@ -32,6 +32,17 @@ function channelList(guild) {
                 PermissionFlagsBits.ViewChannel,
                 PermissionFlagsBits.SendMessages,
             ])),
+            // For a thread per task: public threads, and private ones (only in text channels).
+            botCanThread: Boolean(me && channel.permissionsFor(me)?.has([
+                PermissionFlagsBits.ViewChannel,
+                PermissionFlagsBits.SendMessagesInThreads,
+                PermissionFlagsBits.CreatePublicThreads,
+            ])),
+            botCanPrivateThread: Boolean(me && channel.type === ChannelType.GuildText && channel.permissionsFor(me)?.has([
+                PermissionFlagsBits.ViewChannel,
+                PermissionFlagsBits.SendMessagesInThreads,
+                PermissionFlagsBits.CreatePrivateThreads,
+            ])),
         }));
 }
 

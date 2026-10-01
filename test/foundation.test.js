@@ -38,13 +38,15 @@ test("every command loads and serialises, and /help lists them all", () => {
     for (const file of fs.readdirSync(dir).filter((name) => name.endsWith(".js"))) {
         const command = require(path.join(dir, file));
         const json = command.data.toJSON();
-        assert.match(json.name, /^[a-z-]{1,32}$/);
+        // Slash commands are lower case; commands on a message's menu are named as Discord shows them.
+        assert.match(json.name, json.type === 3 ? /^[A-Z][a-z ]{1,31}$/ : /^[a-z-]{1,32}$/);
         commands.set(json.name, command);
     }
     const { buildHelp } = require("../src/services/help/helpService");
     const help = JSON.stringify(buildHelp(commands).toJSON());
-    for (const name of commands.keys()) {
-        assert.ok(help.includes(`/${name}`), `help mentions /${name}`);
+    for (const [name, command] of commands) {
+        const shown = command.data.toJSON().type === 3 ? `Apps → ${name}` : `/${name}`;
+        assert.ok(help.includes(shown), `help mentions ${shown}`);
     }
 });
 

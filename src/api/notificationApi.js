@@ -28,4 +28,13 @@ function reportFailed(batchId) {
     return request(`/api/internal/notifications/${batchId}/failed`, { method: "POST", headers: headers() });
 }
 
-module.exports = { claimPlans, reportDelivered, reportFailed };
+/** The thread the bot made for a task, or `gone: true` when it found that thread deleted. */
+function reportThread({ serverId, taskId, channelId, threadId, privateThread = false, gone = false }) {
+    return request("/api/internal/notifications/threads", {
+        method: "POST",
+        headers: headers(),
+        body: { serverId, taskId: Number(taskId), channelId, threadId, privateThread, gone },
+    });
+}
+
+module.exports = { claimPlans, reportDelivered, reportFailed, reportThread };

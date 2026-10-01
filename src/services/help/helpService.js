@@ -1,4 +1,4 @@
-const { ActionRowBuilder, ApplicationCommandOptionType, ButtonBuilder, ButtonStyle } = require("discord.js");
+const { ActionRowBuilder, ApplicationCommandOptionType, ApplicationCommandType, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { webAppUrl, supportServerUrl } = require("../../config/env");
 const { buildContainer, appendDivider, appendText, appendFooter } = require("../../ui/containers");
 const { UserFacingError } = require("../../utils/errorMessages");
@@ -26,6 +26,10 @@ function listEntries(commands) {
     const entries = [];
     for (const command of commands.values()) {
         const json = command.data.toJSON();
+        // Commands found on a message's menu are listed on their own (see menuCommands).
+        if (json.type !== undefined && json.type !== ApplicationCommandType.ChatInput) {
+            continue;
+        }
         const subcommands = (json.options ?? []).filter((option) => option.type === ApplicationCommandOptionType.Subcommand);
         if (subcommands.length === 0) {
             entries.push({ path: json.name, parent: json.name, json, info: command.info ?? {} });
@@ -41,6 +45,14 @@ function listEntries(commands) {
         }
     }
     return entries.sort((a, b) => a.path.localeCompare(b.path));
+}
+
+/** Commands on a message's menu: long-press or right-click a message, then Apps. */
+function menuCommands(commands) {
+    return [...commands.values()]
+        .filter((command) => command.data.toJSON().type === ApplicationCommandType.Message)
+        .map((command) => `**${command.data.name}**: long-press or right-click a message, then Apps → ${command.data.name}. `
+            + (command.info?.description ?? ""));
 }
 
 /** `/board view <board>`: options in order, required ones in <>, optional ones in []. */
@@ -68,6 +80,11 @@ function buildHelp(commands) {
             .map((entry) => `\`${usageOf(entry)}\` — ${entry.json.description}`)
             .join("\n"));
     appendText(container, blocks.join("\n\n"));
+    const menus = menuCommands(commands);
+    if (menus.length > 0) {
+        appendDivider(container);
+        appendText(container, menus.join("\n"));
+    }
 
     container.addActionRowComponents(
         new ActionRowBuilder().addComponents(

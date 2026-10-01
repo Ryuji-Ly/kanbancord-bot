@@ -25,7 +25,7 @@ module.exports = {
             return;
         }
 
-        if (interaction.isChatInputCommand()) {
+        if (interaction.isChatInputCommand() || interaction.isContextMenuCommand?.()) {
             const command = client.commands.get(interaction.commandName);
             if (!command) {
                 logger.warn(`Unknown command: ${interaction.commandName}`);
