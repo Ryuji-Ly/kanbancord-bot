@@ -112,6 +112,8 @@ const STEPS = [
             "You rarely need to type these: `/board view` and each column have **Add task**, and every view links to the "
                 + "next, from the board list down to a task's comments. Anyone can use the buttons; whether they may make the "
                 + "change is checked when they click.",
+            "Something said in chat belongs on the board? Long-press or right-click the message, then **Apps → Create "
+                + "task**: the message fills in the form, with a link back to it.",
         ],
     },
     {
@@ -146,6 +148,8 @@ const STEPS = [
                 + "to move, assign or edit it right there. The place to follow *what just happened*.",
             "They also work together, say a board post in #board and a feed in #updates. For a record of every change "
                 + "that pings nobody, `/kanbancord audit-channel` mirrors the audit log to a channel.",
+            "With a feed, `/board threads` can also give each task its own thread for discussion in the feed's channel: "
+                + "public, or private for the task's creator and assignees.",
         ],
     },
     {
