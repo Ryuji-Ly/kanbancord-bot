@@ -1,6 +1,7 @@
-const { ActionRowBuilder } = require("discord.js");
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { webAppUrl } = require("../config/env");
 const { describeEntry } = require("../services/notifications/describe");
+const { encode } = require("../utils/customId");
 const { discordTime, fitLines, parseServerTime, plain } = require("../utils/format");
 const { appendFooter, appendText, buildContainer, v2Payload } = require("./containers");
 const { linkButton } = require("./boardViews");
@@ -109,11 +110,18 @@ function buildDirectMessage(plan, message, serverName) {
     const container = buildContainer({ title, body: place ? `-# ${place}` : undefined });
     // Written to the person: "assigned you" rather than their own mention.
     appendText(container, linesFor(plan, entries).split(`<@${message.userId}>`).join("you"));
-    appendFooter(container, `You get these about tasks you are assigned to, created or follow. Change what you get in Settings → Notifications on ${webAppUrl.replace(/^https?:\/\//, "")}.`);
+    appendFooter(container, "You get these about tasks you are assigned to, created or follow. Stop them with the button "
+        + `below, or choose what you get with /notifications in the server or in Settings → Notifications on ${webAppUrl.replace(/^https?:\/\//, "")}.`);
+    const row = new ActionRowBuilder();
     if (plan.board) {
-        container.addActionRowComponents(new ActionRowBuilder().addComponents(
-            linkButton(plan.task && !plan.task.deleted ? "Open task" : "Open board", taskUrl(plan))));
+        row.addComponents(linkButton(plan.task && !plan.task.deleted ? "Open task" : "Open board", taskUrl(plan)));
     }
+    // Works right here in the direct message: the server is in the button, since there is no server here.
+    row.addComponents(new ButtonBuilder()
+        .setCustomId(encode("dm", "server", plan.serverId, "NONE"))
+        .setStyle(ButtonStyle.Secondary)
+        .setLabel("Stop messages from this server"));
+    container.addActionRowComponents(row);
     // A direct message never needs to ping: it notifies by itself.
     return v2Payload(container);
 }
