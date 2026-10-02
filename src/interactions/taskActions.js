@@ -1,6 +1,7 @@
 const { registerComponentHandler, registerModalHandler } = require("../utils/interactionRouter");
 const { getSnapshot, snapshotModel } = require("../services/boards/boardData");
 const actions = require("../services/boards/taskActions");
+const { createLabel, createPriority } = require("../services/boards/labelActions");
 const { columnView, taskViewById } = require("../services/boards/viewService");
 const panels = require("../ui/taskPanels");
 const { parseDue } = require("../utils/dueDate");
@@ -35,6 +36,13 @@ async function showResult(ctx, boardId, result) {
 registerComponentHandler("act", async (ctx, { action, args }) => {
     const [boardId, taskId] = args;
     const values = ctx.interaction.values ?? [];
+
+    // The panels' New label and New priority buttons open a form; forms must be the first answer.
+    if (action === "newlabel" || action === "newprio") {
+        const model = snapshotModel(await getSnapshot(ctx, boardId));
+        const task = actions.requireTask(model, taskId);
+        return ctx.showModal(action === "newlabel" ? panels.newLabelModal(model, task) : panels.newPriorityModal(model, task));
+    }
 
     if (action === "menu") {
         const choice = values[0];
@@ -86,6 +94,11 @@ registerComponentHandler("act", async (ctx, { action, args }) => {
     }
 });
 
+/** "Created label **Bug** and added it to this task", or what went wrong with the second part. */
+function noticeAfter(created, done, outcome) {
+    return outcome?.startsWith("Some changes") ? `${created}.\n${outcome}` : `${created} and ${done}.`;
+}
+
 /** A form field that may have been left out of the form (see editTaskModal). */
 function optionalField(ctx, id) {
     try {
@@ -117,6 +130,25 @@ registerModalHandler("act", async (ctx, { action, args }) => {
             return showResult(ctx, boardId, await actions.addComment(ctx, boardId, id, fields.getTextInputValue("content")));
         case "create":
             return showResult(ctx, boardId, await actions.createTask(ctx, boardId, id, readNewTask(fields)));
+        case "newlabel": {
+            const created = await createLabel(ctx, boardId, {
+                name: fields.getTextInputValue("name"),
+                color: fields.getStringSelectValues("color")?.[0],
+            });
+            const model = await actions.currentModel(ctx, boardId);
+            const current = model.labelsOf(actions.requireTask(model, id)).map((label) => label.labelId);
+            const result = await actions.setLabels(ctx, boardId, id, [...current, created.labelId]);
+            return showResult(ctx, boardId, { ...result, notice: noticeAfter(created.notice, "added it to this task", result.notice) });
+        }
+        case "newprio": {
+            const position = fields.getStringSelectValues("position")?.[0];
+            const created = await createPriority(ctx, boardId, {
+                name: fields.getTextInputValue("name"),
+                position: position ? Number(position) : undefined,
+            });
+            const result = await actions.setPriority(ctx, boardId, id, created.priorityId);
+            return showResult(ctx, boardId, { ...result, notice: noticeAfter(created.notice, "set it on this task", result.notice) });
+        }
         default:
             throw new UserFacingError("Not available", "That form is not available here.");
     }

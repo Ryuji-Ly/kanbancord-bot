@@ -14,6 +14,7 @@ const { encode } = require("../utils/customId");
 const { EXAMPLES, toInputText } = require("../utils/dueDate");
 const { parseServerTime, plain, truncate } = require("../utils/format");
 const { appendText, buildContainer, warningContainer } = require("./containers");
+const { colorChoices, nextColor } = require("../utils/colors");
 
 /**
  * What can be done to a task from Discord: the actions menu on the task view, the small panels it
@@ -53,10 +54,10 @@ function taskActions(model, task, abilities, userId) {
         actions.push({ value: "people", label: "Assign people" });
         actions.push({ value: "roles", label: "Assign roles" });
     }
-    if ((abilities.applyLabel || abilities.removeLabel) && model.labels().length > 0) {
+    if ((abilities.applyLabel || abilities.removeLabel) && model.features.LABELS) {
         actions.push({ value: "labels", label: "Labels" });
     }
-    if (abilities.setPriority && model.priorities().length > 0) {
+    if (abilities.setPriority) {
         actions.push({ value: "priority", label: "Priority" });
     }
     if (abilities.setDue) {
@@ -91,16 +92,24 @@ function actionsRow(model, task, abilities, userId) {
     );
 }
 
-function panel(model, task, title, control, note) {
+/** A panel: the control (left out when there is nothing to choose from), then Back and any extra buttons. */
+function panel(model, task, title, control, note, extra = []) {
     const container = buildContainer({ title, body: `-# ${plain(task.title, 150)}` });
     if (note) {
         appendText(container, note);
     }
-    container.addActionRowComponents(
-        new ActionRowBuilder().addComponents(control),
-        new ActionRowBuilder().addComponents(backButton(model.board.boardId, task.taskId)),
-    );
+    if (control) {
+        container.addActionRowComponents(new ActionRowBuilder().addComponents(control));
+    }
+    container.addActionRowComponents(new ActionRowBuilder().addComponents(...extra, backButton(model.board.boardId, task.taskId)));
     return container;
+}
+
+function newButton(label, action, model, task) {
+    return new ButtonBuilder()
+        .setCustomId(encode("act", action, model.board.boardId, task.taskId))
+        .setStyle(ButtonStyle.Primary)
+        .setLabel(label);
 }
 
 function movePanel(model, task) {
@@ -145,8 +154,10 @@ function rolesPanel(model, task) {
 function labelsPanel(model, task) {
     const applied = new Set(model.labelsOf(task).map((label) => label.labelId));
     const labels = model.labels().slice(0, MENU_MAX);
-    const note = model.labels().length > MENU_MAX ? `Only the first ${MENU_MAX} labels fit here; use the website for the rest.` : null;
-    return panel(model, task, "Labels", new StringSelectMenuBuilder()
+    const note = labels.length === 0
+        ? "This board has no labels yet. Make the first one: it is added to this task."
+        : model.labels().length > MENU_MAX ? `Only the first ${MENU_MAX} labels fit here; use the website for the rest.` : null;
+    const select = labels.length === 0 ? null : new StringSelectMenuBuilder()
         .setCustomId(encode("act", "labels", model.board.boardId, task.taskId))
         .setPlaceholder("No labels")
         .setMinValues(0)
@@ -155,11 +166,16 @@ function labelsPanel(model, task) {
             label: truncate(label.name, 100),
             value: String(label.labelId),
             default: applied.has(label.labelId),
-        }))), note);
+        })));
+    return panel(model, task, "Labels", select, note, [newButton("New label", "newlabel", model, task)]);
 }
 
 function priorityPanel(model, task) {
     const levels = model.priorities().slice(0, MENU_MAX - 1);
+    const extra = [newButton("New priority", "newprio", model, task)];
+    if (levels.length === 0) {
+        return panel(model, task, "Priority", null, "This board has no priority levels. Make one: it is set on this task.", extra);
+    }
     return panel(model, task, "Priority", new StringSelectMenuBuilder()
         .setCustomId(encode("act", "priority", model.board.boardId, task.taskId))
         .setPlaceholder("Pick a priority…")
@@ -170,7 +186,49 @@ function priorityPanel(model, task) {
                 default: level.priorityId === task.priorityId,
             })),
             { label: "No priority", value: "none", default: task.priorityId === null || task.priorityId === undefined },
-        ]));
+        ]), null, extra);
+}
+
+/** A new label for the board, put on the task when it is made. */
+function newLabelModal(model, task) {
+    const suggested = nextColor(model.labels().map((label) => label.color));
+    return new ModalBuilder()
+        .setCustomId(encode("act", "newlabel", model.board.boardId, task.taskId))
+        .setTitle("New label")
+        .addLabelComponents(
+            new LabelBuilder().setLabel("Name").setTextInputComponent(textInput("name", { max: 50 })),
+            new LabelBuilder().setLabel("Colour").setStringSelectMenuComponent(new StringSelectMenuBuilder()
+                .setCustomId("color")
+                .setRequired(false)
+                .addOptions(colorChoices("").slice(0, 25).map((choice) => ({
+                    label: choice.name,
+                    value: choice.value,
+                    default: choice.value.toLowerCase() === String(suggested).toLowerCase(),
+                })))),
+        );
+}
+
+/** A new priority level, set on the task when it is made; where it goes among the others. */
+function newPriorityModal(model, task) {
+    const levels = model.priorities().slice(0, MENU_MAX - 1);
+    const fields = [new LabelBuilder().setLabel("Name").setTextInputComponent(textInput("name", { max: 50 }))];
+    if (levels.length > 0) {
+        fields.push(new LabelBuilder().setLabel("Where it goes").setStringSelectMenuComponent(new StringSelectMenuBuilder()
+            .setCustomId("position")
+            .setRequired(false)
+            .addOptions(
+                { label: "Most urgent: above all the others", value: "1" },
+                ...levels.map((level, index) => ({
+                    label: truncate(`Below ${level.name}`, 100),
+                    value: String(index + 2),
+                    default: index === levels.length - 1,
+                })),
+            )));
+    }
+    return new ModalBuilder()
+        .setCustomId(encode("act", "newprio", model.board.boardId, task.taskId))
+        .setTitle("New priority level")
+        .addLabelComponents(...fields);
 }
 
 function deletePanel(model, task) {
@@ -262,4 +320,6 @@ module.exports = {
     editTaskModal,
     dueModal,
     commentModal,
+    newLabelModal,
+    newPriorityModal,
 };

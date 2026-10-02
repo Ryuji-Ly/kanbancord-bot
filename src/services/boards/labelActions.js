@@ -66,7 +66,7 @@ async function createLabel(ctx, boardId, { name, color }) {
     const label = await ctx.api.post(`/boards/${boardId}/labels`, {
         body: { name: clean, boardId: Number(boardId), color: color ?? nextColor(model.labels().map((entry) => entry.color)) },
     });
-    return after(ctx, boardId, { notice: `Created label **${plain(label.name ?? clean, 60)}**` });
+    return after(ctx, boardId, { labelId: label.labelId, notice: `Created label **${plain(label.name ?? clean, 60)}**` });
 }
 
 async function editLabel(ctx, boardId, id, { name, color }) {
@@ -126,7 +126,7 @@ async function createPriority(ctx, boardId, { name, color, position }) {
     if (position !== undefined && indexFor(position, count) !== count - 1) {
         await ctx.api.post(`/boards/${boardId}/priorities/${level.priorityId}/move`, { body: { index: indexFor(position, count) } });
     }
-    return after(ctx, boardId, { notice: `Created priority **${plain(level.name ?? clean, 60)}**` });
+    return after(ctx, boardId, { priorityId: level.priorityId, notice: `Created priority **${plain(level.name ?? clean, 60)}**` });
 }
 
 async function editPriority(ctx, boardId, id, { name, color }) {
