@@ -1,4 +1,4 @@
-const { LabelBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require("discord.js");
+const { LabelBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, escapeMarkdown } = require("discord.js");
 const { devUserIds } = require("../../config/env");
 const { buildContainer, appendDivider, appendFooter, appendText, v2Payload } = require("../../ui/containers");
 const { COLORS } = require("../../ui/theme");
@@ -10,6 +10,9 @@ const KINDS = {
     issue: { label: "Issue", accent: COLORS.error },
     suggestion: { label: "Suggestion", accent: COLORS.info },
 };
+
+/** Reports that come from the website through the notification queue, not from /report. */
+const LANGUAGE_REQUEST = { label: "Language request", accent: COLORS.info };
 
 const TITLE_MAX = 100;
 const DESCRIPTION_MAX = 2000;
@@ -65,10 +68,7 @@ function claimCooldown(userId, now = Date.now()) {
  */
 async function deliverReport(client, { kind, title, description, reporter, guild }) {
     const info = KINDS[kind] ?? KINDS.issue;
-    const container = buildContainer({ title: `${info.label}: ${title}`, accent: info.accent });
-    appendText(container, description);
-    appendDivider(container);
-    appendFooter(container, [
+    const container = reportContainer(info, title, description, [
         `From ${reporter.tag ?? reporter.username} (${reporter.id})`,
         guild ? `in ${guild.name} (${guild.id})` : "in a DM",
     ].join(" "));
@@ -86,4 +86,46 @@ async function deliverReport(client, { kind, title, description, reporter, guild
     }
 }
 
-module.exports = { KINDS, isConfigured, buildReportModal, claimCooldown, deliverReport };
+/** A report as the developers get it: what it is and its title, the text, and who sent it from where. */
+function reportContainer(info, title, description, footer) {
+    const container = buildContainer({ title: `${info.label}: ${title}`, accent: info.accent });
+    appendText(container, description);
+    appendDivider(container);
+    appendFooter(container, footer);
+    return container;
+}
+
+/** A language's English name ("Brazilian Portuguese"), or its code when it has none. */
+function languageName(tag) {
+    try {
+        return new Intl.DisplayNames(["en"], { type: "language" }).of(tag) ?? tag;
+    } catch {
+        return tag;
+    }
+}
+
+/**
+ * Someone asked on the website for it in another language. Everything in it came from them, so it is
+ * shown as plain text: no formatting, and (as in every message the bot sends) no mentions.
+ *
+ * @param {{ userId: string, userName: string | null, language: string, note: string | null }} request
+ */
+function buildLanguageRequestMessage(request) {
+    const container = reportContainer(
+        LANGUAGE_REQUEST,
+        `${escapeMarkdown(languageName(request.language))} (${escapeMarkdown(request.language)})`,
+        request.note ? escapeMarkdown(request.note) : "-# No note.",
+        `From ${escapeMarkdown(request.userName ?? "someone")} (${request.userId}) on the website`,
+    );
+    return v2Payload(container);
+}
+
+module.exports = {
+    KINDS,
+    isConfigured,
+    buildReportModal,
+    claimCooldown,
+    deliverReport,
+    buildLanguageRequestMessage,
+    languageName,
+};

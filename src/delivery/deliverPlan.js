@@ -6,6 +6,8 @@ const { componentCount } = require("../ui/containers");
 const { buildFeedCard } = require("../ui/feedViews");
 const { buildAuditMessage, buildDirectMessage, buildFeedMessage } = require("../ui/notificationViews");
 const { channelVisibility, serverName } = require("../services/notifications/visibility");
+const { buildLanguageRequestMessage } = require("../services/report/reportService");
+const { devUserIds } = require("../config/env");
 const logger = require("../utils/logger");
 const { deliverWithThread } = require("./taskThreads");
 
@@ -90,6 +92,8 @@ function discordSenders(client) {
         /** The whole board, as everyone in a channel sees it on an interactive post. */
         loadBoard: (serverId, boardId) => postSnapshot(serverId, boardId).then(snapshotModel),
         serverName: (guildId) => serverName(client, guildId),
+        /** Who language requests go to: the developers, as configured for the bot, never anyone in a plan. */
+        developerIds: () => devUserIds,
     };
 }
 
@@ -141,6 +145,53 @@ function cardLoader(plan, senders) {
  *   sent and something failed in a way that might work later; the plan should then be tried again
  */
 async function deliverPlan(plan, senders) {
+    // Each kind is delivered its own way, and only the kinds known here are delivered at all. Plans
+    // from an API older than kinds are changes or reminders.
+    switch (plan.kind ?? "CHANGES") {
+        case "CHANGES":
+        case "REMINDER":
+            return deliverServerPlan(plan, senders);
+        case "LANGUAGE_REQUEST":
+            return deliverLanguageRequest(plan, senders);
+        default:
+            logger.error(`[Delivery] Batch ${plan.batchId} is of an unknown kind (${plan.kind}): not delivered`);
+            return { sent: 0, skipped: 0, retry: true };
+    }
+}
+
+/**
+ * A request for the website in another language: to each developer by direct message, and to
+ * nobody else. Channels, people or threads in the plan are never used for it.
+ */
+async function deliverLanguageRequest(plan, senders) {
+    const developers = senders.developerIds();
+    if (!plan.request || developers.length === 0) {
+        logger.warn(`[Delivery] Language request ${plan.batchId} not delivered: ${plan.request ? "no developers configured" : "no request"}`);
+        return { sent: 0, skipped: 1, retry: false };
+    }
+    const payload = buildLanguageRequestMessage(plan.request);
+    let sent = 0;
+    let skipped = 0;
+    let transientFailure = false;
+    for (const userId of developers) {
+        try {
+            await senders.sendToUser(userId, payload);
+            sent++;
+        } catch (error) {
+            if (isPermanent(error)) {
+                logger.warn(`[Delivery] Language request to ${userId}: ${error.message}`);
+                skipped++;
+            } else {
+                logger.error(`[Delivery] Language request to ${userId}: ${error.stack ?? error.message}`);
+                transientFailure = true;
+            }
+        }
+    }
+    return { sent, skipped, retry: sent === 0 && transientFailure };
+}
+
+/** Changes on a server, or a reminder: to its channels, the task's thread and its people. */
+async function deliverServerPlan(plan, senders) {
     let sent = 0;
     let skipped = 0;
     let transientFailure = false;

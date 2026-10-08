@@ -221,3 +221,67 @@ test("each claimed plan is reported delivered, or failed to be tried again", asy
     assert.equal(await runOnce(flaky, api), 2);
     assert.deepEqual(reports, ["delivered 7", "failed 8"]);
 });
+
+// ── Kinds of plan ─────────────────────────────────────────────────────────────
+
+const DEV = "623456789012345678";
+
+function requestPlan(overrides = {}) {
+    return {
+        batchId: 9,
+        kind: "LANGUAGE_REQUEST",
+        serverId: null,
+        board: null,
+        task: null,
+        entries: [],
+        names: { columns: {}, labels: {}, priorities: {} },
+        channels: [],
+        directMessages: [],
+        thread: null,
+        request: { userId: MIA, userName: "Mia *", language: "pt-BR", note: "For our **team** @everyone <@1>" },
+        ...overrides,
+    };
+}
+
+test("a language request goes to the developers only, as plain text without mentions", async () => {
+    const { sent, senders } = fakeSenders();
+    senders.developerIds = () => [DEV];
+    // Even a plan that names channels or people is sent to the developers alone.
+    const result = await deliverPlan(requestPlan({
+        channels: [{ channelId: "111", kind: "FEED", entryIds: [], mentionUserIds: [MIA], mentionRoleIds: [] }],
+        directMessages: [{ userId: MIA, entryIds: [], mode: "ALWAYS" }],
+    }), senders);
+    assert.deepEqual(sent.map((item) => item.to), [`@${DEV}`]);
+    assert.deepEqual(result, { sent: 1, skipped: 0, retry: false });
+
+    const payload = sent[0].payload;
+    assert.deepEqual(payload.allowedMentions, { parse: [] });
+    const texts = payload.components[0].toJSON().components.map((part) => part.content).filter(Boolean);
+    assert.deepEqual(texts, [
+        "### Language request: Brazilian Portuguese (pt-BR)",
+        "For our \\*\\*team\\*\\* @everyone <@1>",
+        `-# From Mia \\* (${MIA}) on the website`,
+    ], "formatting in the note is shown as typed");
+});
+
+test("changes that read like a language request are delivered as changes", async () => {
+    const { sent, senders } = fakeSenders({ visible: { [`111:${MIA}`]: true } });
+    senders.developerIds = () => [DEV];
+    await deliverPlan(planFixture({ kind: "CHANGES", task: { taskId: 100, title: "Language request: French", deleted: false } }), senders);
+    assert.deepEqual(sent.map((item) => item.to), ["#111", "#222"], "to its channels, never to the developers");
+});
+
+test("a plan of a kind the bot does not know is not delivered, and is tried again later", async () => {
+    const { sent, senders } = fakeSenders();
+    senders.developerIds = () => [DEV];
+    const result = await deliverPlan(planFixture({ kind: "SOMETHING_NEW" }), senders);
+    assert.deepEqual(sent, []);
+    assert.deepEqual(result, { sent: 0, skipped: 0, retry: true });
+});
+
+test("a language request with no developers configured is dropped, not retried", async () => {
+    const { sent, senders } = fakeSenders();
+    senders.developerIds = () => [];
+    assert.deepEqual(await deliverPlan(requestPlan(), senders), { sent: 0, skipped: 1, retry: false });
+    assert.deepEqual(sent, []);
+});
