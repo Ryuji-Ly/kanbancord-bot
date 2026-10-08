@@ -28,8 +28,9 @@ function postSnapshot(serverId, boardId) {
  * @param {{ done?: string[], gone?: string[], retry?: string[] }} outcome redrawn; gone for good
  *   (removed); or to try again later
  */
-function reportPosts({ done = [], gone = [], retry = [] }) {
-    return request("/api/internal/board-posts/report", { method: "POST", headers: headers(), body: { done, gone, retry } });
+/** Answers with the blocked posts the server has not been told about yet: `{ tell: [...] }`. */
+function reportPosts({ done = [], gone = [], retry = [], blocked = [] }) {
+    return request("/api/internal/board-posts/report", { method: "POST", headers: headers(), body: { done, gone, retry, blocked } });
 }
 
 module.exports = { claimPosts, postSnapshot, reportPosts };

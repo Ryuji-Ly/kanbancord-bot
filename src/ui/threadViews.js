@@ -56,8 +56,9 @@ function enableThreadsPrompt({ board, taskId, channels }) {
             + `public, started from the task's post, with updates going to both the thread and the channel.${where}`,
     });
     if (usable.length === 0) {
-        return appendFooter(container, "The bot cannot make threads in any of this board's feed channels. Give it Create "
-            + "Public Threads and Send Messages in Threads in one, then try again.");
+        const where = channels.map((channel) => `<#${channel.channelId}>`).join(", ");
+        return appendFooter(container, `I can't make threads in this board's feed channels (${where}). Give me View Channel, `
+            + "Send Messages in Threads and Create Public Threads in one of them, then try again.");
     }
     if (usable.length === 1) {
         container.addActionRowComponents(new ActionRowBuilder().addComponents(

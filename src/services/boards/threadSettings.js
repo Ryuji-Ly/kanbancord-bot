@@ -1,8 +1,10 @@
-const { ChannelType, PermissionFlagsBits } = require("discord.js");
+const { ChannelType } = require("discord.js");
 const { resolveBoard } = require("./boardData");
 const { appendDivider, appendFooter, appendText, buildContainer } = require("../../ui/containers");
 const { UserFacingError } = require("../../utils/errorMessages");
 const { plain } = require("../../utils/format");
+const { listOf, missingIn, threadNeeds } = require("../permissions/botAccess");
+const { missingLine } = require("../../ui/permissionNoticeViews");
 
 /**
  * /board threads: a thread per task for one board, in one of its feed channels. Shows the settings,
@@ -30,22 +32,18 @@ function requireCanThreadIn(ctx, channelId, privateThreads) {
         throw new UserFacingError("No private threads there", `${where} is an announcement channel, which can only have `
             + "public threads. Leave private off, or use a feed in a text channel.");
     }
-    const needed = [
-        [PermissionFlagsBits.ViewChannel, "View Channel"],
-        [PermissionFlagsBits.SendMessagesInThreads, "Send Messages in Threads"],
-        privateThreads
-            ? [PermissionFlagsBits.CreatePrivateThreads, "Create Private Threads"]
-            : [PermissionFlagsBits.CreatePublicThreads, "Create Public Threads"],
-    ];
-    const missing = needed.filter(([flag]) => !permissions.has(flag)).map(([, name]) => name);
-    if (missing.length > 0) {
-        throw new UserFacingError("Can't make threads there", `I need ${missing.join(", ")} in ${where} to make threads `
-            + "there. Give me that, or pick another feed channel.");
+    const missing = missingIn(guild, channelId, threadNeeds(privateThreads));
+    if (missing && missing.length > 0) {
+        throw new UserFacingError("Can't make threads there", `I'm missing ${listOf(missing)} in ${where}, so I can't `
+            + "make task threads there. Give me that, or pick another feed channel.");
     }
 }
 
-/** The board's thread settings, as text. */
-function threadsPanel(board, settings, notice) {
+/**
+ * The board's thread settings, as text. `missing`: what the bot lacks in the chosen channel, when
+ * threads are on but cannot be made there.
+ */
+function threadsPanel(board, settings, notice, missing = null) {
     const container = buildContainer({ title: `Task threads · ${plain(board.name, 80)}` });
     if (notice) {
         appendText(container, notice);
@@ -63,6 +61,9 @@ function threadsPanel(board, settings, notice) {
             `**Threads:** ${settings.privateThreads ? "private: the task's creator and assignees" : "public"}`,
             `**A task's updates go to:** ${UPDATES[settings.updates] ?? settings.updates}`,
         ].join("\n"));
+        if (missing && missing.length > 0) {
+            appendText(container, missingLine("No new threads", settings.channelId, missing));
+        }
     }
     if (settings.channels.length === 0) {
         appendText(container, "-# This board has no update feed yet. Add one with `/kanbancord feed`, then switch threads on.");
@@ -81,7 +82,7 @@ async function boardThreads(ctx, boardInput, changes) {
     const current = await ctx.api.get(path);
     const asked = Object.values(changes).some((value) => value !== null);
     if (!asked) {
-        return threadsPanel(board, current);
+        return threadsPanel(board, current, null, threadProblem(ctx, current));
     }
     if (changes.enabled === false) {
         const after = await ctx.api.delete(path);
@@ -107,6 +108,13 @@ async function boardThreads(ctx, boardInput, changes) {
     return threadsPanel(board, after, current.enabled
         ? "Saved. New threads follow these settings."
         : "Threads are on: each task gets its own thread when something next happens to it.");
+}
+
+/** What the bot lacks to make the board's threads where they are set to go, if they are on. */
+function threadProblem(ctx, settings) {
+    return settings.enabled && settings.channelId
+        ? missingIn(ctx.interaction.guild, settings.channelId, threadNeeds(settings.privateThreads))
+        : null;
 }
 
 module.exports = { boardThreads, threadsPanel, requireCanThreadIn };

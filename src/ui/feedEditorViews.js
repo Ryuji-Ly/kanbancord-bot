@@ -2,6 +2,7 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } 
 const { encode } = require("../utils/customId");
 const { plain, truncate } = require("../utils/format");
 const { appendDivider, appendFooter, appendText, buildContainer } = require("./containers");
+const { missingLine } = require("./permissionNoticeViews");
 
 /**
  * Editing update feeds in Discord: a feed's events, mentions, boards and style (for server managers),
@@ -47,9 +48,10 @@ function summary(events, posts, mentions) {
 /**
  * A feed, for server managers: boards, events, mentions, buttons on posts, and deleting it.
  *
- * @param {{ feed: object, catalogue: object[], channelName: string | null, boards: object[], notice?: string }} options
+ * @param {{ feed: object, catalogue: object[], channelName: string | null, boards: object[], notice?: string,
+ *   missing?: string[] | null }} options `missing`: what the bot lacks to post in the feed's channel
  */
-function buildFeedEditor({ feed, catalogue, channelName, boards, notice }) {
+function buildFeedEditor({ feed, catalogue, channelName, boards, notice, missing = null }) {
     const events = eventsOf(catalogue);
     const mentionable = events.filter((event) => event.canMention);
     const posts = (key) => Boolean(feed.events?.[key]);
@@ -67,7 +69,8 @@ function buildFeedEditor({ feed, catalogue, channelName, boards, notice }) {
         summary(events, posts, mentions),
         `**Posts show:** ${feed.interactive ? "the whole task, with buttons to change it" : "what changed, without buttons"}`
             + ` · **Mentions roles:** ${feed.mentionRoles ? "yes, roles on the task too" : "no, people only"}`,
-    ].join("\n"));
+        missing ? missingLine("Nothing is posted", feed.channelId, missing) : null,
+    ].filter(Boolean).join("\n"));
 
     container.addActionRowComponents(eventMenu(encode("feedcfg", "events", feed.feedId), "What it posts", events, posts));
     container.addActionRowComponents(eventMenu(encode("feedcfg", "mentions", feed.feedId),
@@ -113,7 +116,7 @@ function buildFeedDeleteConfirm(feed, channelName) {
  * The feeds that post about a board, for the board's managers: each can be changed for this board
  * only.
  */
-function buildBoardFeedList({ board, notifications, notice }) {
+function buildBoardFeedList({ board, notifications, notice, problems = new Map() }) {
     const container = buildContainer({ title: `Notifications · ${plain(board.name, 80)}` });
     if (notice) {
         appendText(container, notice);
@@ -128,7 +131,8 @@ function buildBoardFeedList({ board, notifications, notice }) {
         const where = `#${plain(feed.channelName ?? "a channel that no longer exists", 60)}`;
         const scope = feed.everyBoard ? "every board" : "chosen boards";
         const own = feed.own.changes > 0 ? `${feed.own.changes} change${feed.own.changes === 1 ? "" : "s"} for this board` : "follows the feed";
-        return `- ${where} · ${scope} · ${own}`;
+        const missing = problems.get(feed.channelId);
+        return `- ${where} · ${scope} · ${own}${missing ? `\n  ${missingLine("Not posting", feed.channelId, missing)}` : ""}`;
     }).join("\n"));
     container.addActionRowComponents(new ActionRowBuilder().addComponents(new StringSelectMenuBuilder()
         .setCustomId(encode("bfeed", "open", board.boardId))
@@ -142,7 +146,7 @@ function buildBoardFeedList({ board, notifications, notice }) {
 }
 
 /** One feed as it treats this board: the feed's settings, with the board's changes on top. */
-function buildBoardFeedEditor({ board, feed, catalogue, notice }) {
+function buildBoardFeedEditor({ board, feed, catalogue, notice, missing = null }) {
     const events = eventsOf(catalogue);
     const mentionable = events.filter((event) => event.canMention);
     const posts = (key) => feed.own.events[key] ?? Boolean(feed.feedEvents[key]);
@@ -162,7 +166,8 @@ function buildBoardFeedEditor({ board, feed, catalogue, notice }) {
         changed.length === 0
             ? "-# Follows the feed's own settings."
             : `-# Changed for this board: ${changed.join(", ")}`,
-    ].join("\n"));
+        missing ? missingLine("Nothing is posted", feed.channelId, missing) : null,
+    ].filter(Boolean).join("\n"));
     container.addActionRowComponents(eventMenu(encode("bfeed", "events", board.boardId, feed.feedId),
         "What it posts about this board", events, posts));
     container.addActionRowComponents(eventMenu(encode("bfeed", "mentions", board.boardId, feed.feedId),

@@ -1,6 +1,7 @@
 const { registerComponentHandler } = require("../utils/interactionRouter");
 const { serverSettings } = require("../services/settings/notificationSettings");
 const { listBoards } = require("../services/boards/boardData");
+const { postingProblems } = require("../services/permissions/botAccess");
 const {
     buildBoardFeedEditor,
     buildBoardFeedList,
@@ -23,13 +24,14 @@ function chosen(keys, values) {
 }
 
 async function feedEditor(ctx, feedId, notice) {
-    const { settings, boards } = await serverSettings(ctx);
+    const { settings, boards, problems } = await serverSettings(ctx);
     const feed = settings.feeds.find((entry) => String(entry.feedId) === String(feedId));
     if (!feed) {
         throw new UserFacingError("Feed not found", "That feed no longer exists. Run `/kanbancord settings` again.");
     }
     const channelName = settings.channels.find((channel) => channel.channelId === feed.channelId)?.name ?? null;
-    return { view: buildFeedEditor({ feed, catalogue: settings.catalogue, channelName, boards, notice }), feed, settings };
+    const missing = problems.get(feed.channelId) ?? null;
+    return { view: buildFeedEditor({ feed, catalogue: settings.catalogue, channelName, boards, notice, missing }), feed, settings };
 }
 
 registerComponentHandler("feedcfg", async (ctx, { action, args }) => {
@@ -80,15 +82,17 @@ async function boardFeeds(ctx, boardId) {
     if (!board) {
         throw new UserFacingError("Board not found", "That board no longer exists, or you can no longer see it.");
     }
-    return { board, notifications: await ctx.api.get(`/boards/${boardId}/notifications`) };
+    const notifications = await ctx.api.get(`/boards/${boardId}/notifications`);
+    const problems = postingProblems(ctx.interaction.guild, notifications.feeds.map((feed) => feed.channelId));
+    return { board, notifications, problems };
 }
 
-function boardFeedEditor(board, notifications, feedId, notice) {
+function boardFeedEditor(board, notifications, feedId, notice, problems = new Map()) {
     const feed = notifications.feeds.find((entry) => String(entry.feedId) === String(feedId));
     if (!feed) {
         throw new UserFacingError("Feed not found", "That feed no longer posts about this board.");
     }
-    return buildBoardFeedEditor({ board, feed, catalogue: notifications.catalogue, notice });
+    return buildBoardFeedEditor({ board, feed, catalogue: notifications.catalogue, notice, missing: problems.get(feed.channelId) ?? null });
 }
 
 registerComponentHandler("bfeed", async (ctx, { action, args }) => {
@@ -101,13 +105,13 @@ registerComponentHandler("bfeed", async (ctx, { action, args }) => {
         return ctx.update(buildBoardFeedList(await boardFeeds(ctx, boardId)));
     }
     if (action === "open") {
-        const { board, notifications } = await boardFeeds(ctx, boardId);
-        return ctx.update(boardFeedEditor(board, notifications, values[0]));
+        const { board, notifications, problems } = await boardFeeds(ctx, boardId);
+        return ctx.update(boardFeedEditor(board, notifications, values[0], undefined, problems));
     }
     if (action === "reset") {
         await ctx.api.delete(path);
-        const { board, notifications } = await boardFeeds(ctx, boardId);
-        return ctx.update(boardFeedEditor(board, notifications, feedId, "This board follows the feed's settings again."));
+        const { board, notifications, problems } = await boardFeeds(ctx, boardId);
+        return ctx.update(boardFeedEditor(board, notifications, feedId, "This board follows the feed's settings again.", problems));
     }
     if (action === "events" || action === "mentions") {
         const { notifications } = await boardFeeds(ctx, boardId);
@@ -117,8 +121,8 @@ registerComponentHandler("bfeed", async (ctx, { action, args }) => {
             : events.filter((event) => event.canMention).map((event) => event.key);
         // Values equal to the feed's own are dropped by the API, so the board follows the feed there.
         await ctx.api.put(path, { body: { [action]: chosen(keys, values) } });
-        const { board, notifications: after } = await boardFeeds(ctx, boardId);
-        return ctx.update(boardFeedEditor(board, after, feedId, "Saved for this board."));
+        const { board, notifications: after, problems } = await boardFeeds(ctx, boardId);
+        return ctx.update(boardFeedEditor(board, after, feedId, "Saved for this board.", problems));
     }
     throw new UserFacingError("Not available", "That action is not available here.");
 });

@@ -69,6 +69,7 @@ test("redrawing: one copy per board, deleted boards say so, and lost or stuck po
         { postId: "5", serverId: "999", boardId: "1", channelId: "archived", messageId: "m5", boardExists: true },
         { postId: "6", serverId: "999", boardId: "1", channelId: "c1", messageId: "broken", boardExists: true },
         { postId: "7", serverId: "999", boardId: "3", channelId: "c1", messageId: "m7", boardExists: true },
+        { postId: "8", serverId: "999", boardId: "1", channelId: "hidden", messageId: "m8", boardExists: true },
     ];
     const snapshots = [];
     const edits = [];
@@ -85,6 +86,7 @@ test("redrawing: one copy per board, deleted boards say so, and lost or stuck po
         },
         reportPosts: async (outcome) => {
             reported = outcome;
+            return { tell: [{ postId: "8", serverId: "999", channelId: "hidden", boardName: "Sprint" }] };
         },
     };
     const reopenedThreads = new Set();
@@ -92,6 +94,9 @@ test("redrawing: one copy per board, deleted boards say so, and lost or stuck po
         edit: async (channelId, messageId, containers) => {
             if (messageId === "gone") {
                 throw Object.assign(new Error("Unknown Message"), { code: 10008 });
+            }
+            if (channelId === "hidden") {
+                throw Object.assign(new Error("Missing Access"), { code: 50001 });
             }
             if (messageId === "broken") {
                 throw Object.assign(new Error("Service unavailable"), { status: 503 });
@@ -105,12 +110,17 @@ test("redrawing: one copy per board, deleted boards say so, and lost or stuck po
             reopened.push(channelId);
             reopenedThreads.add(channelId);
         },
+        tellBlocked: async (serverId, blocked) => told.push({ serverId, blocked }),
     };
+    const told = [];
 
-    assert.equal(await runOnce(editor, api), 7);
+    assert.equal(await runOnce(editor, api), 8);
     assert.deepEqual(snapshots, ["1", "3"], "one copy of each board; none for a board known to be deleted");
     assert.deepEqual(reopened, ["archived"]);
-    assert.deepEqual(reported, { done: ["1", "2", "5"], gone: ["3", "4", "7"], retry: ["6"] });
+    assert.deepEqual(reported, { done: ["1", "2", "5"], gone: ["3", "4", "7"], retry: ["6"], blocked: ["8"] },
+        "a post the bot may no longer edit is blocked, not given up on");
+    assert.deepEqual(told, [{ serverId: "999", blocked: [{ postId: "8", serverId: "999", channelId: "hidden", boardName: "Sprint" }] }],
+        "the server is told about the posts KanbanCord says it has not been told about yet");
     const deleted = edits.filter((edit) => edit.text.includes("Board deleted")).map((edit) => edit.messageId);
     assert.deepEqual(deleted, ["m3", "m7"], "a deleted board's posts say so once, then are removed");
     assert.match(edits.find((edit) => edit.messageId === "m1").text, /Sprint/);
@@ -150,8 +160,9 @@ test("a post's audience: who can see the channel, or for a private thread its me
 
 test("posting is refused early where the bot could not keep the post up to date", () => {
     const ctxWith = (bits) => ({ interaction: { appPermissions: new PermissionsBitField(bits) } });
-    const text = { isTextBased: () => true, isDMBased: () => false, isThread: () => false };
-    assert.throws(() => requireCanPost(ctxWith(PermissionFlagsBits.ViewChannel), text), /View Channel and Send Messages\./);
+    const text = { id: "77", isTextBased: () => true, isDMBased: () => false, isThread: () => false };
+    assert.throws(() => requireCanPost(ctxWith(0n), text), /I'm missing View Channel and Send Messages in <#77>/);
+    assert.throws(() => requireCanPost(ctxWith(PermissionFlagsBits.ViewChannel), text), /I'm missing Send Messages in <#77>/);
     requireCanPost(ctxWith(PermissionFlagsBits.ViewChannel | PermissionFlagsBits.SendMessages), text);
 
     const thread = { ...text, isThread: () => true, locked: false };

@@ -4,6 +4,7 @@ const { v2Payload } = require("../../ui/containers");
 const { UserFacingError } = require("../../utils/errorMessages");
 const logger = require("../../utils/logger");
 const { getSnapshot, snapshotModel } = require("./boardData");
+const { listOf, missingFrom, missingIn, postingNeeds } = require("../permissions/botAccess");
 
 /**
  * Posting a board in the channel or thread a command ran in. The post shows the whole board to
@@ -46,10 +47,11 @@ function requireCanPost(ctx, channel) {
         throw new UserFacingError("Can't post here", "Boards can be posted in a server's text channels and threads.");
     }
     const permissions = ctx.interaction.appPermissions;
-    const send = channel.isThread() ? PermissionFlagsBits.SendMessagesInThreads : PermissionFlagsBits.SendMessages;
-    if (permissions && !permissions.has([PermissionFlagsBits.ViewChannel, send])) {
-        throw new UserFacingError("Can't post here", "I don't have permission to send messages here. A server manager can "
-            + "give me View Channel and Send Messages" + (channel.isThread() ? " in Threads" : "") + ".");
+    const missing = permissions ? missingFrom(permissions, postingNeeds(channel)) : [];
+    if (missing.length > 0) {
+        throw new UserFacingError("Can't post here", `I'm missing ${listOf(missing)} in <#${channel.id}>, so I can't post `
+            + "the board or keep it up to date there. A server manager can give me that in this "
+            + (channel.isThread() ? "thread's channel." : "channel."));
     }
     if (channel.isThread() && channel.locked) {
         throw new UserFacingError("Can't post here", "This thread is locked, so I could not keep a post up to date.");
@@ -62,23 +64,10 @@ function requireCanPost(ctx, channel) {
  * the one the command ran in. Lets it through when Discord has not told the bot about the channel.
  */
 function requireCanPostIn(ctx, chosen) {
-    const guild = ctx.interaction.guild;
-    const channel = guild?.channels.cache.get(chosen.id);
-    const me = guild?.members.me;
-    const permissions = channel && me ? channel.permissionsFor(me) : null;
-    if (!permissions) {
-        return;
-    }
-    const where = `<#${chosen.id}>`;
-    const send = channel.isThread() ? PermissionFlagsBits.SendMessagesInThreads : PermissionFlagsBits.SendMessages;
-    const sendName = channel.isThread() ? "Send Messages in Threads" : "Send Messages";
-    if (!permissions.has(PermissionFlagsBits.ViewChannel)) {
-        throw new UserFacingError("Can't post there", `I can't see ${where}. Give me View Channel and ${sendName} `
+    const missing = missingIn(ctx.interaction.guild, chosen.id, postingNeeds);
+    if (missing && missing.length > 0) {
+        throw new UserFacingError("Can't post there", `I'm missing ${listOf(missing)} in <#${chosen.id}>. Give me that `
             + "there, or pick another channel.");
-    }
-    if (!permissions.has(send)) {
-        throw new UserFacingError("Can't post there", `I can see ${where} but I'm not allowed to send messages there. `
-            + `Give me ${sendName} there, or pick another channel.`);
     }
 }
 

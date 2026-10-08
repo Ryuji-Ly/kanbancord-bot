@@ -1,6 +1,8 @@
 const { ChannelType, PermissionFlagsBits } = require("discord.js");
 const { replaceChannels } = require("../../api/syncApi");
+const { buildLostChannelsNotice } = require("../../ui/permissionNoticeViews");
 const logger = require("../../utils/logger");
+const { Flags, missingIn, tellServer } = require("../permissions/botAccess");
 
 /**
  * Tells KanbanCord which text channels a server has, and whether the bot may post in each, so the
@@ -46,10 +48,43 @@ function channelList(guild) {
         }));
 }
 
-/** Sends the server's channels now. */
+/**
+ * What the bot lacks in a channel where something stopped working: what posting needs, and what
+ * threads need where they stopped (private ones only in a text channel).
+ */
+function missingForLost(guild, entry) {
+    return missingIn(guild, entry.channelId, (channel) => {
+        const needs = new Set();
+        if (entry.posting) {
+            needs.add(Flags.ViewChannel).add(Flags.SendMessages);
+        }
+        if (entry.threads) {
+            needs.add(Flags.ViewChannel).add(Flags.SendMessagesInThreads).add(Flags.CreatePublicThreads);
+            if (channel.type === ChannelType.GuildText) {
+                needs.add(Flags.CreatePrivateThreads);
+            }
+        }
+        return [...needs];
+    });
+}
+
+/**
+ * Sends the server's channels now. KanbanCord answers with what stopped working because of the change
+ * (the bot lost access to a channel a feed, the audit log, task threads or a board post uses, or the
+ * channel was deleted); the server's managers are told, once, in its updates or system channel.
+ */
 async function syncChannels(guild) {
     const channels = channelList(guild);
-    await replaceChannels({ serverId: guild.id, channels });
+    const answer = await replaceChannels({ serverId: guild.id, channels });
+    const lost = Array.isArray(answer?.lost) ? answer.lost : [];
+    if (lost.length > 0) {
+        const told = await tellServer(guild.client, guild.id, buildLostChannelsNotice(lost, (entry) => missingForLost(guild, entry)))
+            .catch((error) => {
+                logger.warn(`[ChannelSync] Could not tell ${guild.id} what stopped working: ${error.message}`);
+                return false;
+            });
+        logger.info(`[ChannelSync] ${lost.length} channel(s) stopped working in ${guild.id}${told ? ", told the server" : ", nowhere to tell"}`);
+    }
     return channels.length;
 }
 
@@ -63,4 +98,4 @@ function scheduleChannelSync(guild) {
     }, SETTLE_MS));
 }
 
-module.exports = { channelList, syncChannels, scheduleChannelSync };
+module.exports = { channelList, syncChannels, scheduleChannelSync, missingForLost };
