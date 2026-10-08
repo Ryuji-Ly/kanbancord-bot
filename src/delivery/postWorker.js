@@ -2,6 +2,8 @@ const { MessageFlags, Routes } = require("discord.js");
 const { claimPosts, postSnapshot, reportPosts } = require("../api/boardPostApi");
 const { snapshotModel } = require("../services/boards/boardData");
 const { buildBoardPost, buildDeletedPost } = require("../ui/postViews");
+const { buildBlockedPostsNotice } = require("../ui/permissionNoticeViews");
+const { missingIn, postingNeeds, tellServer } = require("../services/permissions/botAccess");
 const logger = require("../utils/logger");
 
 /**
@@ -17,6 +19,8 @@ const BATCH = 20;
 
 /** The message or channel no longer exists: the post is gone for good. */
 const GONE = new Set([10003, 10008]);
+/** The bot may no longer see the channel or edit there: missing access, missing permissions. */
+const BLOCKED = new Set([50001, 50013]);
 /** The thread was archived; it can be reopened to edit the post. */
 const THREAD_ARCHIVED = 50083;
 
@@ -33,6 +37,15 @@ function discordEditor(client) {
             },
         }),
         reopenThread: (channelId) => client.rest.patch(Routes.channel(channelId), { body: { archived: false } }),
+        /** Tells a server's managers about posts that can no longer be kept up to date, and why. */
+        tellBlocked: (serverId, posts) => {
+            const guild = client.guilds.cache.get(serverId);
+            return tellServer(client, serverId, buildBlockedPostsNotice(posts.map((post) => ({
+                ...post,
+                // Known only for a server on this shard; for others the notice says what to check.
+                missing: guild ? missingIn(guild, post.channelId, postingNeeds) : null,
+            }))));
+        },
     };
 }
 
@@ -92,17 +105,33 @@ async function runOnce(editor, api = { claimPosts, postSnapshot, reportPosts }) 
         return boards.get(key);
     };
 
-    const outcome = { done: [], gone: [], retry: [] };
+    const outcome = { done: [], gone: [], retry: [], blocked: [] };
     for (const post of posts) {
         try {
             outcome[await redraw(post, loadModel, editor)].push(post.postId);
         } catch (error) {
             logger.warn(`[Posts] Could not update post ${post.postId} (${post.channelId}/${post.messageId}): ${error.message}`);
-            outcome.retry.push(post.postId);
+            outcome[BLOCKED.has(error.code) ? "blocked" : "retry"].push(post.postId);
         }
     }
-    await api.reportPosts(outcome).catch((error) => logger.warn(`[Posts] Could not report: ${error.message}`));
+    const answer = await api.reportPosts(outcome).catch((error) => {
+        logger.warn(`[Posts] Could not report: ${error.message}`);
+        return null;
+    });
+    await tellBlocked(answer?.tell ?? [], editor);
     return posts.length;
+}
+
+/** Tells each server, once, about its posts the bot may no longer update. */
+async function tellBlocked(blocked, editor) {
+    const byServer = new Map();
+    for (const post of blocked) {
+        byServer.set(post.serverId, [...(byServer.get(post.serverId) ?? []), post]);
+    }
+    for (const [serverId, posts] of byServer) {
+        await editor.tellBlocked(serverId, posts).catch((error) =>
+            logger.warn(`[Posts] Could not tell ${serverId} about posts it can't update: ${error.message}`));
+    }
 }
 
 function startPostWorker(client, { sleep = wait } = {}) {

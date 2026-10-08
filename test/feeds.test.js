@@ -267,9 +267,10 @@ test("a feed or audit channel the bot cannot post in is refused, saying what to 
     let called = false;
     global.fetch = async () => { called = true; throw new Error("no API call expected"); };
     try {
-        await assert.rejects(run("feed", []), /I can't see <#5>\. Give me View Channel and Send Messages there, or pick another channel/);
+        await assert.rejects(run("feed", []),
+            /I'm missing View Channel and Send Messages in <#5>\. Give me that there, or pick another channel/);
         await assert.rejects(run("audit-channel", [PermissionFlagsBits.ViewChannel]),
-            /not allowed to send messages there\. Give me Send Messages there, or pick another channel/);
+            /I'm missing Send Messages in <#5>\. Give me that there, or pick another channel/);
         assert.equal(called, false, "nothing is saved");
     } finally {
         global.fetch = originalFetch;

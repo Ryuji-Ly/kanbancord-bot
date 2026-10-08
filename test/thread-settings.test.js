@@ -72,6 +72,6 @@ test("switching off, and channels where the bot cannot make the threads asked fo
         /announcement channel, which can only have public threads/);
     const noRights = fakeCtx(offWithOneFeed, { granted: [PermissionFlagsBits.ViewChannel] });
     await assert.rejects(boardThreads(noRights.ctx, "Sprint", { ...none, enabled: true }),
-        /I need Send Messages in Threads, Create Public Threads in <#5>/);
+        /I'm missing Send Messages in Threads and Create Public Threads in <#5>/);
     assert.equal(news.calls.length + noRights.calls.length, 0, "nothing saved");
 });

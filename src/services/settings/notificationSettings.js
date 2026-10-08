@@ -1,5 +1,6 @@
 const { UserFacingError } = require("../../utils/errorMessages");
 const { listBoards, resolveBoard } = require("../boards/boardData");
+const { postingProblems } = require("../permissions/botAccess");
 
 /**
  * Notification settings from Discord: quick changes, with everything else on the website. Personal
@@ -29,9 +30,15 @@ async function setServerMode(ctx, mode) {
     return ctx.api.myNotifications.update({ servers: { [ctx.guildId]: mode } });
 }
 
+/**
+ * The server's notification settings and boards, and `problems`: for each feed or audit channel the
+ * bot cannot post in, what it is missing there.
+ */
 async function serverSettings(ctx) {
     const [settings, boards] = await Promise.all([ctx.api.get("/notifications"), listBoards(ctx)]);
-    return { settings, boards };
+    const problems = postingProblems(ctx.interaction.guild,
+        [settings.auditChannelId, ...settings.feeds.map((feed) => feed.channelId)]);
+    return { settings, boards, problems };
 }
 
 /** @param {string | null} channelId null turns the audit channel off */

@@ -4,6 +4,7 @@ const { encode } = require("../utils/customId");
 const { plain } = require("../utils/format");
 const { appendDivider, appendFooter, appendText, buildContainer } = require("./containers");
 const { linkButton } = require("./boardViews");
+const { missingLine } = require("./permissionNoticeViews");
 
 /** The quick notification settings panels: yours (/notifications) and the server's (/kanbancord settings). */
 
@@ -91,8 +92,11 @@ function buildMyNotificationsPanel(settings, guildId, guildName) {
     return appendFooter(container, "Menus save as you change them. The same settings are in Settings → Notifications on the website.");
 }
 
-/** Where the bot posts about this server, with a menu to change a feed. */
-function buildServerNotificationsPanel({ settings, boards }, notice) {
+/**
+ * Where the bot posts about this server, with a menu to change a feed. `problems`: for each channel
+ * the bot cannot post in, what it is missing there.
+ */
+function buildServerNotificationsPanel({ settings, boards, problems = new Map() }, notice) {
     const channelName = (id) => {
         const channel = settings.channels.find((entry) => entry.channelId === id);
         return channel ? `#${plain(channel.name, 60)}` : "a channel that no longer exists";
@@ -105,7 +109,11 @@ function buildServerNotificationsPanel({ settings, boards }, notice) {
         appendText(container, notice);
         appendDivider(container);
     }
-    appendText(container, `**Audit log channel:** ${settings.auditChannelId ? channelName(settings.auditChannelId) : "none"}`);
+    const auditMissing = settings.auditChannelId ? problems.get(settings.auditChannelId) : null;
+    appendText(container, [
+        `**Audit log channel:** ${settings.auditChannelId ? channelName(settings.auditChannelId) : "none"}`,
+        auditMissing ? missingLine("Not posting", settings.auditChannelId, auditMissing) : null,
+    ].filter(Boolean).join("\n"));
     appendDivider(container);
     if (settings.feeds.length === 0) {
         appendText(container, "**Update feeds:** none yet. Add one with `/kanbancord feed`.");
@@ -122,7 +130,9 @@ function buildServerNotificationsPanel({ settings, boards }, notice) {
                 .filter((category) => category.events.some((event) => feed.events[event.key] && feed.mentions[event.key]))
                 .map((category) => category.label);
             const buttons = feed.interactive ? " · with buttons" : "";
-            return `- ${channelName(feed.channelId)} · ${scope}${buttons}\n  -# ${on.join(", ") || "nothing"}${pinging.length > 0 ? ` · mentions for ${pinging.join(", ")}` : ""}`;
+            const missing = problems.get(feed.channelId);
+            const warning = missing ? `\n  ${missingLine("Not posting", feed.channelId, missing)}` : "";
+            return `- ${channelName(feed.channelId)} · ${scope}${buttons}\n  -# ${on.join(", ") || "nothing"}${pinging.length > 0 ? ` · mentions for ${pinging.join(", ")}` : ""}${warning}`;
         });
         appendText(container, `**Update feeds**\n${lines.join("\n")}`);
     }
