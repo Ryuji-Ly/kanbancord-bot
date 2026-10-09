@@ -63,6 +63,17 @@ async function listKnownServerIds() {
 }
 
 /**
+ * Board and task totals, across the servers the bot is in, for its status.
+ * @returns {Promise<{ boards: number, tasks: number }>}
+ */
+function fetchBotStats() {
+    return request("/api/internal/stats", {
+        method: "GET",
+        headers: syncHeaders(),
+    });
+}
+
+/**
  * Replaces all role assignments for a member.
  * @param {{ serverId: string, userId: string, roleIds: string[] }} param
  */
@@ -110,6 +121,7 @@ module.exports = {
     upsertMember,
     bootstrapServer,
     listKnownServerIds,
+    fetchBotStats,
     syncMemberRoles,
     deleteRole,
     deleteMember,
