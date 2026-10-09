@@ -1,10 +1,10 @@
-const { ActivityType } = require("discord.js");
 const logger = require("../utils/logger");
 const { startSyncSchedule } = require("../services/sync/syncScheduler");
 const { startDeliveryWorker } = require("../delivery/deliveryWorker");
 const { startPostWorker } = require("../delivery/postWorker");
 const { startListingStats } = require("../services/listings/listingStats");
 const { startHeartbeat } = require("../services/status/heartbeat");
+const { startPresence } = require("../services/status/presence");
 
 module.exports = {
     name: "clientReady",
@@ -12,15 +12,8 @@ module.exports = {
     async execute(client) {
         logger.info(`${client.user.tag} is online`);
 
-        await client.user.setPresence({
-            status: "online",
-            activities: [
-                {
-                    type: ActivityType.Watching,
-                    name: "KanbanCord boards",
-                },
-            ],
-        });
+        // Each shard shows its own status, so this runs on every shard.
+        startPresence(client);
 
         // In the background: waits for the API if it is still starting, then keeps a regular re-sync.
         startSyncSchedule(client);
