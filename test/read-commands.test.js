@@ -51,6 +51,7 @@ test("usage lines come from the options: <required> and [optional]", () => {
         "commands with subcommands cannot be run alone, so they are not offered");
     const overview = JSON.stringify(buildHelp(commands).toJSON());
     assert.ok(!overview.includes("**/board**"));
+    assert.ok(overview.includes("KanbanCord Activity"), "the overview says the boards can also be opened as an Activity");
 });
 
 test("formatting: server times are UTC, descriptions lose their media to a gallery, text is budgeted", () => {
