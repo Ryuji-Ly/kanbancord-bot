@@ -65,8 +65,9 @@ function usageOf(entry) {
 function buildHelp(commands) {
     const container = buildContainer({
         title: "KanbanCord",
-        body: "Kanban boards for your Discord server. Manage everything on the website; use these commands to work "
-            + "with boards without leaving Discord.",
+        body: "Kanban boards for your Discord server. Use these commands to work with your boards without leaving "
+            + "Discord, or open them in a call with the **KanbanCord Activity**: start it from the Activities button "
+            + "in a voice channel, or from the app launcher in any text channel. The website shows the whole picture.",
     });
     appendDivider(container);
 
