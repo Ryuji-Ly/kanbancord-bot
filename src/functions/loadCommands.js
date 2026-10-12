@@ -22,20 +22,38 @@ function loadCommands(client) {
     logger.info(`Loaded ${client.commands.size} commands`);
 }
 
+/** Discord's type for an Activity's entry point: the "Launch" command it adds when Activities are turned on. */
+const PRIMARY_ENTRY_POINT = 4;
+
+/**
+ * Our commands, plus the Activity's entry point command when the app has one. Registering replaces
+ * the whole global list, and Discord refuses a list that leaves the entry point out, so it is sent
+ * back as Discord has it.
+ */
+function withEntryPoint(body, registered) {
+    const entryPoint = registered.find((command) => command.type === PRIMARY_ENTRY_POINT);
+    if (!entryPoint) return body;
+    const keep = ["id", "type", "name", "name_localizations", "description", "description_localizations",
+        "handler", "contexts", "integration_types", "default_member_permissions", "nsfw"];
+    return [...body, Object.fromEntries(keep.filter((key) => entryPoint[key] !== undefined).map((key) => [key, entryPoint[key]]))];
+}
+
 /**
  * Registers the loaded commands with Discord: to one server when DISCORD_GUILD_ID is set (instant,
  * for development), otherwise globally. Run by one shard only.
  */
 async function registerCommands(client) {
-    const body = [...client.commands.values()].map((command) => command.data.toJSON());
+    const commands = [...client.commands.values()].map((command) => command.data.toJSON());
     const rest = new REST({ version: "10" }).setToken(discordBotToken);
     const route = discordGuildId
         ? Routes.applicationGuildCommands(discordApplicationId, discordGuildId)
         : Routes.applicationCommands(discordApplicationId);
+    // Entry points only exist globally.
+    const body = discordGuildId ? commands : withEntryPoint(commands, await rest.get(route));
 
-    logger.info(`Registering ${body.length} slash commands (${discordGuildId ? "guild" : "global"} scope)`);
+    logger.info(`Registering ${body.length} commands (${discordGuildId ? "guild" : "global"} scope)`);
     await rest.put(route, { body });
     logger.info("Slash command registration complete");
 }
 
-module.exports = { loadCommands, registerCommands };
+module.exports = { loadCommands, registerCommands, withEntryPoint };
