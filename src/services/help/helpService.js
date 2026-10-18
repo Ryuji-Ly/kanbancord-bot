@@ -55,10 +55,21 @@ function menuCommands(commands) {
             + (command.info?.description ?? ""));
 }
 
-/** `/board view <board>`: options in order, required ones in <>, optional ones in []. */
-function usageOf(entry) {
-    const options = (entry.json.options ?? []).map((option) => (option.required ? `<${option.name}>` : `[${option.name}]`));
-    return [`/${entry.path}`, ...options].join(" ");
+/** How many optional options the overview lists before it says `[options]` instead. */
+const SHORT_OPTIONAL = 3;
+
+/**
+ * `/board view <board>`: options in order, required ones in <>, optional ones in []. With `short`,
+ * for the overview, a long list of optional ones is just `[options]`; /help on the command has them all.
+ */
+function usageOf(entry, { short = false } = {}) {
+    const all = entry.json.options ?? [];
+    const optional = all.filter((option) => !option.required);
+    const collapse = short && optional.length > SHORT_OPTIONAL;
+    const options = all
+        .filter((option) => option.required || !collapse)
+        .map((option) => (option.required ? `<${option.name}>` : `[${option.name}]`));
+    return [`/${entry.path}`, ...options, ...(collapse ? ["[options]"] : [])].join(" ");
 }
 
 /** The overview: each command with a line per subcommand. */
@@ -78,7 +89,7 @@ function buildHelp(commands) {
     const blocks = parents.map((parent) =>
         entries
             .filter((entry) => entry.parent === parent)
-            .map((entry) => `\`${usageOf(entry)}\` — ${entry.json.description}`)
+            .map((entry) => `\`${usageOf(entry, { short: true })}\` — ${entry.json.description}`)
             .join("\n"));
     appendText(container, blocks.join("\n\n"));
     const menus = menuCommands(commands);

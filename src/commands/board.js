@@ -3,10 +3,19 @@ const { respondBoardOptions } = require("../services/boards/autocomplete");
 const { boardListView, boardView } = require("../services/boards/viewService");
 const flows = require("../services/boards/commandService");
 const { boardThreads } = require("../services/boards/threadSettings");
+const transfer = require("../services/boards/transfer");
 const { resolveBoard } = require("../services/boards/boardData");
 const { boardFeeds } = require("../interactions/feedSettings");
 const { buildBoardFeedList } = require("../ui/feedEditorViews");
 const { boardOption } = require("../utils/commandOptions");
+
+/** A true/false option for each optional part of a board file. */
+function withPartOptions(sub, describe) {
+    for (const part of transfer.PARTS) {
+        sub.addBooleanOption((option) => option.setName(part.name).setDescription(describe(part)));
+    }
+    return sub;
+}
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -48,7 +57,18 @@ module.exports = {
                         { name: "The thread and the channel", value: "BOTH" },
                         { name: "Only the thread", value: "THREAD" },
                         { name: "Only the channel", value: "CHANNEL" },
-                    ))),
+                    )))
+        .addSubcommand((sub) => withPartOptions(
+            sub.setName("export").setDescription("Download a board as a file, to keep or to import elsewhere")
+                .addStringOption(boardOption()),
+            (part) => `Include ${part.label.toLowerCase()} (on by default when the board uses them)`))
+        .addSubcommand((sub) => withPartOptions(
+            sub.setName("import").setDescription("Create a new board from a file made with /board export")
+                .addAttachmentOption((option) =>
+                    option.setName("file").setDescription("The board file").setRequired(true))
+                .addStringOption((option) =>
+                    option.setName("name").setDescription("The new board's name; the file's if left out").setMaxLength(100)),
+            (part) => `Bring in ${part.label.toLowerCase()} from the file (on by default)`)),
 
     info: {
         subcommands: {
@@ -99,6 +119,19 @@ module.exports = {
                 notes: "Needs permission to edit the board's details. Server managers add and change feeds with "
                     + "`/kanbancord feed` and `/kanbancord settings`.",
             },
+            export: {
+                description: "Sends you the board as a file: its details, columns and tasks, plus its labels, priorities, "
+                    + "assignees and comments when the board uses them, and its permission rules if you may edit them. "
+                    + "Set an option to False to leave that part out.",
+                examples: ["/board export board:Sprint", "/board export board:Sprint comments:False"],
+                notes: "Import the file with `/board import`, here or in another server, or on the website.",
+            },
+            import: {
+                description: "Creates a new board from a board file, with everything in the file unless an option leaves "
+                    + "it out. People and roles that are not in this server are left out, and you are told how many.",
+                examples: ["/board import file:sprint.kanbancord.json", "/board import file:sprint.kanbancord.json name:Sprint 13 permissions:False"],
+                notes: "Needs permission to create boards. A name already in use gets a number added.",
+            },
             threads: {
                 description: "Gives each task on the board its own thread for discussion, in one of the board's update "
                     + "feed channels: started from the task's post there, or on its own. Threads follow the task's title "
@@ -144,6 +177,10 @@ module.exports = {
                 const board = await resolveBoard(ctx, options.getString("board", true));
                 return ctx.reply(buildBoardFeedList(await boardFeeds(ctx, board.boardId)));
             }
+            case "export":
+                return transfer.boardExport(ctx);
+            case "import":
+                return transfer.boardImport(ctx);
             case "threads":
                 await ctx.defer({ ephemeral: true });
                 return ctx.reply(await boardThreads(ctx, options.getString("board", true), {

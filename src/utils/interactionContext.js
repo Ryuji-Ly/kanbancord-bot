@@ -80,8 +80,11 @@ class InteractionContext {
      * Sends the response, or replaces it if one was already sent or deferred. A deferred reply keeps
      * the visibility it was deferred with.
      */
-    async reply(containers, { ephemeral = false } = {}) {
+    async reply(containers, { ephemeral = false, files } = {}) {
         const payload = v2Payload(containers, { ephemeral });
+        if (files) {
+            payload.files = files;
+        }
         if (this.interaction.deferred || this.interaction.replied) {
             // Ephemerality is fixed when a reply is first sent; editReply rejects the flag.
             payload.flags &= ~MessageFlags.Ephemeral;
