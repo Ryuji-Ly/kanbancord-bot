@@ -130,12 +130,13 @@ test("redrawing: one copy per board, deleted boards say so, and lost or stuck po
 
 /** A guild with members, some bots, and channel permissions decided by a function. */
 function fakeGuild(members) {
-    const cache = new Collection(members.map((member) => [member.id, { id: member.id, user: { bot: Boolean(member.bot) } }]));
+    const all = new Collection(members.map((member) => [member.id, { id: member.id, user: { bot: Boolean(member.bot) } }]));
     return {
         id: "999",
-        memberCount: cache.size,
+        memberCount: all.size,
         client: { user: { id: "bot" } },
-        members: { cache, fetch: async () => cache },
+        // The bot keeps only a few members, so the audience must come from fetching them all.
+        members: { cache: new Collection(), fetch: async () => all },
     };
 }
 
@@ -153,7 +154,10 @@ test("a post's audience: who can see the channel, or for a private thread its me
         type: ChannelType.PrivateThread,
         isThread: () => true,
         parent: channel,
-        members: { fetch: async () => new Collection([["3", {}], ["robot", {}], ["bot", {}]]) },
+        members: {
+            fetch: async ({ withMember } = {}) => new Collection(["3", "robot", "bot"].map((id) =>
+                [id, { id, guildMember: withMember ? { user: { bot: id !== "3" } } : undefined }])),
+        },
     };
     assert.deepEqual(await channelAudience(privateThread), ["3"], "a private thread is only visible to its members");
 });
@@ -171,4 +175,25 @@ test("posting is refused early where the bot could not keep the post up to date"
     assert.throws(() => requireCanPost(ctxWith(PermissionFlagsBits.ViewChannel | PermissionFlagsBits.SendMessagesInThreads),
         { ...thread, locked: true }), /locked/);
     assert.throws(() => requireCanPost(ctxWith(0n), null), /text channels and threads/);
+});
+
+test("a post replaced by a newer one in its channel links to it once, and is then forgotten", async () => {
+    const edits = [];
+    let reported;
+    const api = {
+        claimPosts: async () => [{ postId: "1", serverId: "999", boardId: "1", channelId: "c1", messageId: "m1",
+            boardExists: true, replacedByMessageId: "m9" }],
+        postSnapshot: async () => {
+            throw new Error("a replaced post is not drawn from its board");
+        },
+        reportPosts: async (outcome) => {
+            reported = outcome;
+            return { tell: [] };
+        },
+    };
+    const editor = { edit: async (channelId, messageId, containers) => edits.push(JSON.stringify(containers.map((c) => c.toJSON()))) };
+    assert.equal(await runOnce(editor, api), 1);
+    assert.deepEqual(reported.gone, ["1"]);
+    assert.match(edits[0], /Posted again/);
+    assert.match(edits[0], /https:\/\/discord\.com\/channels\/999\/c1\/m9/);
 });

@@ -92,6 +92,21 @@ function buildBoardPost(model, { now = new Date() } = {}) {
     return container;
 }
 
+/**
+ * What a post becomes once the board is posted again in the same channel: only the newest post keeps
+ * updating, so this one says where it went and offers nothing else.
+ */
+function buildReplacedPost(post) {
+    const url = `https://discord.com/channels/${post.serverId}/${post.channelId}/${post.replacedByMessageId}`;
+    const container = buildContainer({
+        title: "Posted again",
+        body: "This board was posted again in this channel, and that newer post is the one that keeps updating.",
+        accent: COLORS.info,
+    });
+    container.addActionRowComponents(new ActionRowBuilder().addComponents(linkButton("Go to the board", url)));
+    return container;
+}
+
 /** What a post becomes once its board is deleted: it stays, but says so and offers nothing. */
 function buildDeletedPost() {
     return buildContainer({
@@ -138,4 +153,4 @@ function postedNotice(boardName) {
     );
 }
 
-module.exports = { buildBoardPost, buildDeletedPost, postTaskModal, audienceWarning, postedNotice };
+module.exports = { buildBoardPost, buildDeletedPost, buildReplacedPost, postTaskModal, audienceWarning, postedNotice };

@@ -5,9 +5,11 @@ const { scheduleChannelSync } = require("../services/sync/syncChannels");
 
 /**
  * Returns true if the two members have a different role set.
- * Compares sorted role ID arrays, excluding @everyone (guild ID).
+ * Compares sorted role ID arrays, excluding @everyone (guild ID). A member the bot had not kept
+ * arrives without its old roles, so they may have changed.
  */
 function rolesChanged(oldMember, newMember) {
+    if (oldMember.partial) return true;
     const guildId = newMember.guild.id;
     const oldIds = [...oldMember.roles.cache.keys()].filter((id) => id !== guildId).sort();
     const newIds = [...newMember.roles.cache.keys()].filter((id) => id !== guildId).sort();

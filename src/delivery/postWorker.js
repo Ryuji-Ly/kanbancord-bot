@@ -1,7 +1,7 @@
 const { MessageFlags, Routes } = require("discord.js");
 const { claimPosts, postSnapshot, reportPosts } = require("../api/boardPostApi");
 const { snapshotModel } = require("../services/boards/boardData");
-const { buildBoardPost, buildDeletedPost } = require("../ui/postViews");
+const { buildBoardPost, buildDeletedPost, buildReplacedPost } = require("../ui/postViews");
 const { buildBlockedPostsNotice } = require("../ui/permissionNoticeViews");
 const { missingIn, postingNeeds, tellServer } = require("../services/permissions/botAccess");
 const logger = require("../utils/logger");
@@ -53,7 +53,11 @@ function discordEditor(client) {
 async function redraw(post, loadModel, editor) {
     let containers;
     let finalDrawing = false;
-    if (!post.boardExists) {
+    if (post.replacedByMessageId) {
+        // Posted again in this channel: this copy says where the board went, once, and is forgotten.
+        containers = [buildReplacedPost(post)];
+        finalDrawing = true;
+    } else if (!post.boardExists) {
         containers = [buildDeletedPost()];
         finalDrawing = true;
     } else {

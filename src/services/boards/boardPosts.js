@@ -25,18 +25,21 @@ const AUDIENCE_MAX = 25_000;
 async function channelAudience(channel) {
     const guild = channel.guild;
     if (channel.type === ChannelType.PrivateThread) {
-        const members = await channel.members.fetch();
-        return [...members.keys()].filter((id) => !guild.members.cache.get(id)?.user.bot && id !== guild.client.user.id);
+        const members = await channel.members.fetch({ withMember: true });
+        return [...members.values()]
+            .filter((member) => !member.guildMember?.user.bot && member.id !== guild.client.user.id)
+            .map((member) => member.id);
     }
     const visibleIn = channel.isThread() ? channel.parent : channel;
     if (!visibleIn) {
         return [];
     }
-    if (guild.members.cache.size < guild.memberCount) {
-        await guild.members.fetch().catch((error) =>
-            logger.warn(`[Posts] Could not fetch the members of ${guild.id}: ${error.message}`));
-    }
-    return guild.members.cache
+    // The whole list, as fetched: the bot only keeps a few members at a time.
+    const members = await guild.members.fetch().catch((error) => {
+        logger.warn(`[Posts] Could not fetch the members of ${guild.id}: ${error.message}`);
+        return guild.members.cache;
+    });
+    return members
         .filter((member) => !member.user.bot && visibleIn.permissionsFor(member)?.has(PermissionFlagsBits.ViewChannel))
         .map((member) => member.id);
 }
