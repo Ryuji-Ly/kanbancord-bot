@@ -11,12 +11,13 @@ const FIRST_POST_MS = 60_000;
 const INTERVAL_MS = 30 * 60_000;
 const TIMEOUT_MS = 10_000;
 
-/** Servers and their members, across every shard. */
+/** Servers and their members, across every shard, and how many shards there are. */
 async function totals(client) {
     if (!client.shard) {
         return {
             guilds: client.guilds.cache.size,
             users: client.guilds.cache.reduce((sum, guild) => sum + (guild.memberCount ?? 0), 0),
+            shards: 1,
         };
     }
     const [guilds, users] = await Promise.all([
@@ -24,7 +25,7 @@ async function totals(client) {
         client.shard.broadcastEval((shard) => shard.guilds.cache.reduce((sum, guild) => sum + (guild.memberCount ?? 0), 0)),
     ]);
     const sum = (values) => values.reduce((total, value) => total + Number(value || 0), 0);
-    return { guilds: sum(guilds), users: sum(users) };
+    return { guilds: sum(guilds), users: sum(users), shards: client.shard.count };
 }
 
 /**
@@ -37,8 +38,11 @@ async function postStats(stats, { sites = SITES, send = fetch } = {}) {
         const { url, body } = site.request(stats);
         try {
             const response = await send(url, {
-                method: "POST",
-                headers: { Authorization: site.token, "Content-Type": "application/json" },
+                method: site.method ?? "POST",
+                headers: {
+                    Authorization: site.authorization ? site.authorization(site.token) : site.token,
+                    "Content-Type": "application/json",
+                },
                 body: JSON.stringify(body),
                 signal: AbortSignal.timeout(TIMEOUT_MS),
             });

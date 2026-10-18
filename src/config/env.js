@@ -46,5 +46,6 @@ module.exports = {
     listingTokens: {
         botboard: optional("BOTBOARD_TOKEN"),
         discordbotlist: optional("DISCORDBOTLIST_TOKEN"),
+        topgg: optional("TOPGG_TOKEN"),
     },
 };

@@ -5,8 +5,12 @@ const { listingTokens } = require("../../config/env");
  * across all shards, and returns the request to make. A site is only used when its token is set.
  * To add one: its token in config/env.js, and an entry here.
  *
- * @typedef {{ botId: string, guilds: number, users: number }} Stats
- * @typedef {{ name: string, token: string, request: (stats: Stats) => { url: string, body: object } }} Site
+ * A site may also say how it is called: its HTTP method (POST unless it says otherwise) and how the
+ * token goes in the Authorization header (as it is unless it says otherwise).
+ *
+ * @typedef {{ botId: string, guilds: number, users: number, shards: number }} Stats
+ * @typedef {{ name: string, token: string, method?: string, authorization?: (token: string) => string,
+ *   request: (stats: Stats) => { url: string, body: object } }} Site
  */
 
 /** @type {Site[]} */
@@ -27,6 +31,17 @@ const SITES = [
         request: ({ botId, guilds, users }) => ({
             url: `https://discordbotlist.com/api/v1/bots/${botId}/stats`,
             body: { guilds, users },
+        }),
+    },
+    {
+        // https://docs.top.gg/api/v1/projects: a v1 project token, which names the project itself.
+        name: "top.gg",
+        token: listingTokens.topgg,
+        method: "PATCH",
+        authorization: (token) => `Bearer ${token}`,
+        request: ({ guilds, shards }) => ({
+            url: "https://top.gg/api/v1/projects/@me/metrics",
+            body: { server_count: guilds, shard_count: shards },
         }),
     },
 ];

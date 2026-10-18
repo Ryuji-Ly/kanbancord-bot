@@ -6,26 +6,36 @@ const { Collection } = require("discord.js");
 const { postStats, totals } = require("../src/services/listings/listingStats");
 const { SITES } = require("../src/services/listings/sites");
 
-const STATS = { botId: "1303467182344241283", guilds: 42, users: 5000 };
+const STATS = { botId: "1303467182344241283", guilds: 42, users: 5000, shards: 2 };
 
 test("each listing site gets its own request, with its token, and sites without one are skipped", async () => {
     const sent = [];
     const send = async (url, init) => {
-        sent.push({ url, auth: init.headers.Authorization, body: JSON.parse(init.body) });
+        sent.push({ url, method: init.method, auth: init.headers.Authorization, body: JSON.parse(init.body) });
         return { ok: true, status: 200 };
     };
-    const sites = SITES.map((site, index) => ({ ...site, token: index === 0 ? "test-token-a" : "test-token-b" }));
+    const tokens = ["test-token-a", "test-token-b", "test-token-c"];
+    const sites = SITES.map((site, index) => ({ ...site, token: tokens[index] }));
     const results = await postStats(STATS, { sites, send });
 
-    assert.deepEqual(results, [{ name: "botboard.gg", ok: true }, { name: "discordbotlist.com", ok: true }]);
+    assert.deepEqual(results, [
+        { name: "botboard.gg", ok: true },
+        { name: "discordbotlist.com", ok: true },
+        { name: "top.gg", ok: true },
+    ]);
     assert.deepEqual(sent, [
-        { url: "https://www.botboard.gg/api/v1/bots/1303467182344241283/stats", auth: "test-token-a", body: { server_count: 42 } },
-        { url: "https://discordbotlist.com/api/v1/bots/1303467182344241283/stats", auth: "test-token-b", body: { guilds: 42, users: 5000 } },
+        { url: "https://www.botboard.gg/api/v1/bots/1303467182344241283/stats", method: "POST", auth: "test-token-a", body: { server_count: 42 } },
+        { url: "https://discordbotlist.com/api/v1/bots/1303467182344241283/stats", method: "POST", auth: "test-token-b", body: { guilds: 42, users: 5000 } },
+        // Top.gg's v1 API: PATCH, and the token as a Bearer token.
+        { url: "https://top.gg/api/v1/projects/@me/metrics", method: "PATCH", auth: "Bearer test-token-c", body: { server_count: 42, shard_count: 2 } },
     ]);
 
     sent.length = 0;
     await postStats(STATS, { sites: sites.map((site, index) => (index === 0 ? { ...site, token: "" } : site)), send });
-    assert.deepEqual(sent.map((request) => request.url), ["https://discordbotlist.com/api/v1/bots/1303467182344241283/stats"]);
+    assert.deepEqual(sent.map((request) => request.url), [
+        "https://discordbotlist.com/api/v1/bots/1303467182344241283/stats",
+        "https://top.gg/api/v1/projects/@me/metrics",
+    ]);
 });
 
 test("one site failing does not stop the others", async () => {
@@ -35,20 +45,21 @@ test("one site failing does not stop the others", async () => {
         sites,
         send: async () => (++calls === 1 ? { ok: false, status: 401 } : { ok: true, status: 200 }),
     });
-    assert.deepEqual(results.map((result) => result.ok), [false, true]);
+    assert.deepEqual(results.map((result) => result.ok), [false, true, true]);
 });
 
 test("totals add up every shard, so each site gets one number", async () => {
     const sharded = {
         shard: {
+            count: 2,
             fetchClientValues: async () => [10, 32],
             broadcastEval: async () => [1000, 4000],
         },
     };
-    assert.deepEqual(await totals(sharded), { guilds: 42, users: 5000 });
+    assert.deepEqual(await totals(sharded), { guilds: 42, users: 5000, shards: 2 });
 
     const single = { guilds: { cache: new Collection([["1", { memberCount: 7 }], ["2", { memberCount: 3 }]]) } };
-    assert.deepEqual(await totals(single), { guilds: 2, users: 10 });
+    assert.deepEqual(await totals(single), { guilds: 2, users: 10, shards: 1 });
 });
 
 test("the status heartbeat is only sent while every shard is connected", async () => {
