@@ -151,7 +151,7 @@ const STEPS = [
                 + "the people it concerns, such as someone just assigned. Its posts can show the whole task with buttons "
                 + "to move, assign or edit it right there. The place to follow *what just happened*.",
             "They also work together, say a board post in #board and a feed in #updates. For a record of every change "
-                + "that pings nobody, `/kanbancord audit-channel` mirrors the audit log to a channel.",
+                + "that pings nobody, `/kanbancord audit-channel` mirrors the audit log to a channel, and `/audit` browses it.",
             "**Setting up a feed**, in this order:\n"
                 + "1. `/kanbancord feed channel:#updates` adds it (add `board:` for one board).\n"
                 + "2. **Choose events and mentions** on the reply, or later `/kanbancord settings`, picks what it posts "
@@ -186,7 +186,7 @@ const STEPS = [
             "That covers everyday use. `/help` lists every command with examples, and `/help command:task create` "
                 + "explains one in detail.",
             "On the website you can fine-tune who may do what per board and per person, set which features each board "
-                + "uses, and browse the audit log of every change.",
+                + "uses, and browse the audit log of every change (also in Discord with `/audit`).",
             "Found a bug or have an idea? Use `/report`, or ask in the support server.",
         ],
     },

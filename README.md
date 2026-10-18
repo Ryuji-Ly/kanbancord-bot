@@ -38,6 +38,7 @@ on every board and task, live board posts, update feeds, a thread per task, and 
 | `/notifications` | Choose what the bot tells you by direct message. |
 | `/kanbancord features` | For server managers: simple mode, or which features the server uses. |
 | `/kanbancord settings` · `audit-channel` · `feed` | For server managers: update feeds (what they post, who they mention, which boards, buttons on posts) and the audit log channel. |
+| `/audit` | The audit log, newest first, filtered by board, person or kind of change. Only the person who ran it sees it. |
 | `/report` | Send a bug report or suggestion to the developer. |
 | `/help` | Every command, with examples. |
 
