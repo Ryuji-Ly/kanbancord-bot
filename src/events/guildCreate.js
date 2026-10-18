@@ -45,7 +45,7 @@ module.exports = {
                 }
             }
 
-            const { roleCount, memberCount } = await syncGuild(fetched);
+            const { roleCount, memberCount } = await syncGuild(fetched, { whole: true });
 
             if (noticeMessage) {
                 try {
