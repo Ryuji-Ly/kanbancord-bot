@@ -48,6 +48,7 @@ test("every command and subcommand explains itself for /help", () => {
     });
     const first = JSON.stringify(buildHelp(commands).toJSON());
     assert.ok(first.includes("kc1:help:page:1") && first.includes("KanbanCord Activity"));
+    assert.ok(first.includes("/updates\""), "links to what has changed");
     assert.ok(JSON.stringify(buildHelp(commands, 99).toJSON()).includes(`Page ${pages.length} of ${pages.length}`),
         "pages past the end show the last page");
 });

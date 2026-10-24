@@ -135,6 +135,7 @@ function buildHelp(commands, page = 0) {
     buttons.push(
         new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Open KanbanCord").setURL(webAppUrl),
         new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Support server").setURL(supportServerUrl),
+        new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("What's new").setURL(`${webAppUrl}/updates`),
     );
     container.addActionRowComponents(new ActionRowBuilder().addComponents(...buttons));
     const pageNote = pages.length > 1 ? `Page ${current + 1} of ${pages.length} · ` : "";
