@@ -42,8 +42,8 @@ test("every command loads and serialises, and /help lists them all", () => {
         assert.match(json.name, json.type === 3 ? /^[A-Z][a-z ]{1,31}$/ : /^[a-z-]{1,32}$/);
         commands.set(json.name, command);
     }
-    const { buildHelp } = require("../src/services/help/helpService");
-    const help = JSON.stringify(buildHelp(commands).toJSON());
+    const { buildHelp, helpPages } = require("../src/services/help/helpService");
+    const help = helpPages(commands).map((_, page) => JSON.stringify(buildHelp(commands, page).toJSON())).join("\n");
     for (const [name, command] of commands) {
         const shown = command.data.toJSON().type === 3 ? `Apps → ${name}` : `/${name}`;
         assert.ok(help.includes(shown), `help mentions ${shown}`);

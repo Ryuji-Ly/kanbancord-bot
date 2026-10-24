@@ -1,6 +1,7 @@
 const { ActionRowBuilder, ApplicationCommandOptionType, ApplicationCommandType, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { webAppUrl, supportServerUrl } = require("../../config/env");
 const { buildContainer, appendDivider, appendText, appendFooter } = require("../../ui/containers");
+const { encode } = require("../../utils/customId");
 const { UserFacingError } = require("../../utils/errorMessages");
 
 /**
@@ -72,17 +73,15 @@ function usageOf(entry, { short = false } = {}) {
     return [`/${entry.path}`, ...options, ...(collapse ? ["[options]"] : [])].join(" ");
 }
 
-/** The overview: each command with a line per subcommand. */
-function buildHelp(commands) {
-    const container = buildContainer({
-        title: "KanbanCord",
-        body: "Kanban boards for your Discord server: use them here with these commands, in a call with the "
-            + "**KanbanCord Activity** (from the Activities button or the app launcher), or on the website.",
-    });
-    appendDivider(container);
+/** About how much command text one page of the overview shows, so a page reads at a glance. */
+const PAGE_TEXT = 1600;
 
-    // A command with subcommands cannot be run on its own, so only the subcommands are listed,
-    // grouped by the command they belong to.
+/**
+ * The overview's pages: each command's lines kept together, a page filled until it reaches
+ * {@link PAGE_TEXT}. A command with subcommands cannot be run on its own, so only its subcommands
+ * are listed, grouped by the command they belong to.
+ */
+function helpPages(commands) {
     const entries = listEntries(commands);
     const parents = [...new Set(entries.map((entry) => entry.parent))];
     const blocks = parents.map((parent) =>
@@ -90,20 +89,56 @@ function buildHelp(commands) {
             .filter((entry) => entry.parent === parent)
             .map((entry) => `\`${usageOf(entry, { short: true })}\` — ${entry.json.description}`)
             .join("\n"));
-    appendText(container, blocks.join("\n\n"));
+    const pages = [];
+    for (const block of blocks) {
+        const last = pages[pages.length - 1];
+        if (last && last.reduce((total, text) => total + text.length, 0) + block.length <= PAGE_TEXT) {
+            last.push(block);
+        } else {
+            pages.push([block]);
+        }
+    }
+    return pages.map((page) => page.join("\n\n"));
+}
+
+/**
+ * The overview, one page at a time: the introduction on the first page, the commands on a
+ * message's menu on the last, and buttons to turn the pages.
+ */
+function buildHelp(commands, page = 0) {
+    const pages = helpPages(commands);
+    const current = Math.min(Math.max(0, Number(page) || 0), pages.length - 1);
+    const container = current === 0
+        ? buildContainer({
+            title: "KanbanCord",
+            body: "Kanban boards for your Discord server: use them here with these commands, in a call with the "
+                + "**KanbanCord Activity** (from the Activities button or the app launcher), or on the website.",
+        })
+        : buildContainer({ title: "KanbanCord commands" });
+    appendDivider(container);
+    appendText(container, pages[current]);
     const menus = menuCommands(commands);
-    if (menus.length > 0) {
+    if (current === pages.length - 1 && menus.length > 0) {
         appendDivider(container);
         appendText(container, menus.join("\n"));
     }
 
-    container.addActionRowComponents(
-        new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Open KanbanCord").setURL(webAppUrl),
-            new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Support server").setURL(supportServerUrl),
-        ),
+    const buttons = [];
+    if (pages.length > 1) {
+        buttons.push(
+            new ButtonBuilder().setCustomId(encode("help", "page", current - 1)).setStyle(ButtonStyle.Secondary)
+                .setLabel("Previous").setDisabled(current === 0),
+            new ButtonBuilder().setCustomId(encode("help", "page", current + 1)).setStyle(ButtonStyle.Secondary)
+                .setLabel("Next").setDisabled(current >= pages.length - 1),
+        );
+    }
+    buttons.push(
+        new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Open KanbanCord").setURL(webAppUrl),
+        new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Support server").setURL(supportServerUrl),
     );
-    return appendFooter(container, `${LEGEND} · /help <command> for details · Found a problem? Use /report or ask in the support server.`);
+    container.addActionRowComponents(new ActionRowBuilder().addComponents(...buttons));
+    const pageNote = pages.length > 1 ? `Page ${current + 1} of ${pages.length} · ` : "";
+    return appendFooter(container, `${pageNote}${LEGEND} · /help <command> for details · Found a problem? Use /report or ask in the support server.`);
 }
 
 /** Details for one command (`board view`) or a command with subcommands (`board`). */
@@ -150,4 +185,4 @@ function helpChoices(commands, typed) {
         .map((candidate) => ({ name: `/${candidate}`, value: candidate }));
 }
 
-module.exports = { buildHelp, buildHelpDetail, helpChoices, listEntries, usageOf };
+module.exports = { buildHelp, buildHelpDetail, helpChoices, helpPages, listEntries, usageOf };

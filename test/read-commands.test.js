@@ -11,7 +11,7 @@ const { resolveByIdOrName, autocompleteChoices, snapshotModel } = require("../sr
 const { buildBoardOverview, buildColumnView, buildBoardList } = require("../src/ui/boardViews");
 const { buildTaskView } = require("../src/ui/taskViews");
 const { buildCommentPage } = require("../src/ui/commentViews");
-const { buildHelp, buildHelpDetail, helpChoices, listEntries, usageOf } = require("../src/services/help/helpService");
+const { buildHelp, buildHelpDetail, helpChoices, helpPages, listEntries, usageOf } = require("../src/services/help/helpService");
 const { decode } = require("../src/utils/customId");
 
 function loadCommands() {
@@ -34,7 +34,22 @@ test("every command and subcommand explains itself for /help", () => {
         const detail = buildHelpDetail(commands, entry.path);
         assert.ok(textLength(detail) < 4000);
     }
-    assert.ok(textLength(buildHelp(commands)) < 4000);
+    const pages = helpPages(commands);
+    assert.ok(pages.length > 1, "the overview is split into pages");
+    const all = pages.join("\n");
+    for (const entry of listEntries(commands)) {
+        assert.ok(all.includes(`\`/${entry.path}`), `/${entry.path} is on a page`);
+    }
+    pages.forEach((_, page) => {
+        const json = JSON.stringify(buildHelp(commands, page).toJSON());
+        assert.ok(textLength(buildHelp(commands, page)) < 4000);
+        assert.ok(json.includes(`Page ${page + 1} of ${pages.length}`));
+        assert.equal(json.includes("Create task"), page === pages.length - 1, "message commands are on the last page");
+    });
+    const first = JSON.stringify(buildHelp(commands).toJSON());
+    assert.ok(first.includes("kc1:help:page:1") && first.includes("KanbanCord Activity"));
+    assert.ok(JSON.stringify(buildHelp(commands, 99).toJSON()).includes(`Page ${pages.length} of ${pages.length}`),
+        "pages past the end show the last page");
 });
 
 test("usage lines come from the options: <required> and [optional]", () => {
