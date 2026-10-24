@@ -52,7 +52,7 @@ function menuCommands(commands) {
     return [...commands.values()]
         .filter((command) => command.data.toJSON().type === ApplicationCommandType.Message)
         .map((command) => `**${command.data.name}**: long-press or right-click a message, then Apps → ${command.data.name}. `
-            + (command.info?.description ?? ""));
+            + (command.info?.summary ?? command.info?.description ?? ""));
 }
 
 /** How many optional options the overview lists before it says `[options]` instead. */
@@ -76,9 +76,8 @@ function usageOf(entry, { short = false } = {}) {
 function buildHelp(commands) {
     const container = buildContainer({
         title: "KanbanCord",
-        body: "Kanban boards for your Discord server. Use these commands to work with your boards without leaving "
-            + "Discord, or open them in a call with the **KanbanCord Activity**: start it from the Activities button "
-            + "in a voice channel, or from the app launcher in any text channel. The website shows the whole picture.",
+        body: "Kanban boards for your Discord server: use them here with these commands, in a call with the "
+            + "**KanbanCord Activity** (from the Activities button or the app launcher), or on the website.",
     });
     appendDivider(container);
 

@@ -9,6 +9,7 @@ module.exports = {
         .setContexts(InteractionContextType.Guild),
 
     info: {
+        summary: "Turns the message into a task, with a link back to it.",
         description: "Turns the message into a task: a short message becomes the title, a longer one the description, "
             + "with a link back to the message.",
     },

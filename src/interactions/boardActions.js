@@ -2,7 +2,7 @@ const { registerComponentHandler, registerModalHandler } = require("../utils/int
 const { getSnapshot, snapshotModel } = require("../services/boards/boardData");
 const actions = require("../services/boards/taskActions");
 const { boardViewById, columnView, taskViewById } = require("../services/boards/viewService");
-const { columnDeletePanel, columnRenameModal } = require("../ui/boardViews");
+const { columnArchivePanel, columnDeletePanel, columnRenameModal } = require("../ui/boardViews");
 const { newTaskModal, readNewTask } = require("../ui/taskForm");
 const { encode } = require("../utils/customId");
 const { UserFacingError } = require("../utils/errorMessages");
@@ -43,6 +43,14 @@ registerComponentHandler("col", async (ctx, { action, args }) => {
         }
         case "delete": {
             const result = await actions.deleteColumn(ctx, boardId, columnId);
+            return ctx.update(await boardViewById(ctx, boardId, result.notice));
+        }
+        case "archiveask": {
+            const { model, column } = await requireColumn(ctx, boardId, columnId, { fresh: true });
+            return ctx.update(columnArchivePanel(boardId, column, model.tasksIn(column.columnId).length));
+        }
+        case "archive": {
+            const result = await actions.archiveColumnTasks(ctx, boardId, columnId);
             return ctx.update(await boardViewById(ctx, boardId, result.notice));
         }
         case "move": {

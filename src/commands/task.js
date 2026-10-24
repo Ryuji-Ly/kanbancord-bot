@@ -39,6 +39,8 @@ module.exports = {
             withBoardAndTask(sub.setName("due").setDescription("Set or remove a task's due date"))
                 .addStringOption((option) =>
                     option.setName("when").setDescription(`When, in UTC: ${EXAMPLES}`).setRequired(true).setMaxLength(40)))
+        .addSubcommand((sub) => withBoardAndTask(sub.setName("archive").setDescription("Take a task off the board, keeping it")))
+        .addSubcommand((sub) => withBoardAndTask(sub.setName("restore").setDescription("Bring back an archived task")))
         .addSubcommand((sub) => withBoardAndTask(sub.setName("delete").setDescription("Delete a task"))),
 
     info: {
@@ -87,6 +89,17 @@ module.exports = {
                 notes: "Times are in UTC; the reply shows the result in your own time zone to check. "
                     + "A date on its own is due at the end of that day.",
             },
+            archive: {
+                description: "Takes the task off the board for everyone. It keeps its details, people, labels and "
+                    + "comments, but cannot be changed until it is restored.",
+                examples: ["/task archive board:Sprint task:Fix login"],
+                notes: "To clear out a whole column, such as Done, use `/column archive-tasks`.",
+            },
+            restore: {
+                description: "Puts an archived task back at the end of its column.",
+                examples: ["/task restore board:Sprint task:Fix login"],
+                notes: "The task list shows the board's archived tasks.",
+            },
             delete: {
                 description: "Asks for confirmation, then deletes the task and its comments.",
                 examples: ["/task delete board:Sprint task:Old idea"],
@@ -117,6 +130,10 @@ module.exports = {
                 return flows.taskPriority(ctx);
             case "due":
                 return flows.taskDue(ctx);
+            case "archive":
+                return flows.taskArchive(ctx);
+            case "restore":
+                return flows.taskRestore(ctx);
             case "delete":
                 return flows.taskDelete(ctx);
         }

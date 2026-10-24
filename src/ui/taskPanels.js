@@ -72,6 +72,9 @@ function taskActions(model, task, abilities, userId) {
             ? { value: "unfollow", label: "Unfollow" }
             : { value: "follow", label: "Follow: hear about changes by direct message" });
     }
+    if (abilities.archiveTask) {
+        actions.push({ value: "archive", label: "Archive: off the board until restored" });
+    }
     if (abilities.deleteTask) {
         actions.push({ value: "delete", label: "Delete task" });
     }

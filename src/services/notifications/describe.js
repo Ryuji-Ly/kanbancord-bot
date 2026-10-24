@@ -83,6 +83,12 @@ function describeEntry(entry, names = {}) {
             return `${actor} created it in ${nameOf(names, "columns", snapshot.columnId, "a column")}`;
         case "TASK_DELETED":
             return `${actor} deleted it`;
+        case "TASK_ARCHIVED":
+            return `${actor} archived it`;
+        case "TASK_RESTORED":
+            return `${actor} restored it`;
+        case "COLUMN_TASKS_ARCHIVED":
+            return `${actor} archived every task in column ${bold(snapshot.name ?? "")} (${snapshot.count ?? "?"})`;
         case "TASK_MOVED":
             return typeof changes._fromColumn === "string"
                 ? `${actor} moved it from ${bold(changes._fromColumn)} to ${bold(changes._column ?? "")}`

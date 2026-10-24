@@ -30,6 +30,7 @@ function abilitiesOf(snapshot, { forUser = true } = {}) {
         editTask: can("EDIT_TASK"),
         moveTask: can("MOVE_TASK"),
         deleteTask: can("DELETE_TASK"),
+        archiveTask: can("ARCHIVE_TASK"),
         assignSelf: can("ASSIGN_TASK_SELF"),
         assignOthers: can("ASSIGN_TASK_OTHERS"),
         comment: can("CREATE_TASK_COMMENT"),

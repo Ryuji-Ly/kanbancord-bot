@@ -1,4 +1,4 @@
-const { boardEditModal, columnDeletePanel } = require("../../ui/boardViews");
+const { boardEditModal, columnArchivePanel, columnDeletePanel } = require("../../ui/boardViews");
 const { audienceWarning, postedNotice } = require("../../ui/postViews");
 const { newTaskModal } = require("../../ui/taskForm");
 const { encode } = require("../../utils/customId");
@@ -17,7 +17,7 @@ const {
     resolveTask,
     snapshotModel,
 } = require("./boardData");
-const { boardViewById, taskViewById } = require("./viewService");
+const { boardViewById, columnView, taskViewById } = require("./viewService");
 
 /**
  * What each write command does, given its options. Commands only read their options and call these;
@@ -127,6 +127,22 @@ async function taskDelete(ctx) {
     await ctx.reply(panels.deletePanel(model, task));
 }
 
+async function taskArchive(ctx) {
+    await ctx.defer();
+    const { board, task } = await boardAndTask(ctx);
+    const result = await actions.setTaskArchived(ctx, board.boardId, task.taskId, true);
+    await ctx.reply(await columnView(ctx, board.boardId, result.columnId, 0, result.notice));
+}
+
+/** Archived tasks are not on the board, so the task is looked for among them. */
+async function taskRestore(ctx) {
+    await ctx.defer();
+    const options = ctx.interaction.options;
+    const board = await resolveBoard(ctx, options.getString("board", true));
+    const task = resolveTask({ tasks: await actions.archivedTasks(ctx, board.boardId) }, options.getString("task", true));
+    await showTask(ctx, board.boardId, await actions.setTaskArchived(ctx, board.boardId, task.taskId, false));
+}
+
 // ── /comment ─────────────────────────────────────────────────────────────────
 
 async function commentAdd(ctx) {
@@ -168,6 +184,13 @@ async function columnDelete(ctx) {
     await ctx.defer();
     const { board, model, column } = await boardAndColumn(ctx);
     await ctx.reply(columnDeletePanel(board.boardId, column, model.tasksIn(column.columnId).length));
+}
+
+/** Asks first, saying how many tasks it archives. */
+async function columnArchiveTasks(ctx) {
+    await ctx.defer();
+    const { board, model, column } = await boardAndColumn(ctx);
+    await ctx.reply(columnArchivePanel(board.boardId, column, model.tasksIn(column.columnId).length));
 }
 
 // ── /board ───────────────────────────────────────────────────────────────────
@@ -217,11 +240,14 @@ module.exports = {
     taskPriority,
     taskDue,
     taskDelete,
+    taskArchive,
+    taskRestore,
     commentAdd,
     columnAdd,
     columnRename,
     columnMove,
     columnDelete,
+    columnArchiveTasks,
     boardCreate,
     boardEdit,
     boardArchive,

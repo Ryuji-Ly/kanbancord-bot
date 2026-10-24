@@ -224,6 +224,9 @@ function buildColumnView(model, columnId, page) {
             actionButton("Add task here", "col", "addtask", board.boardId, column.columnId)
                 .setStyle(ButtonStyle.Primary).setDisabled(locked),
             actionButton("Rename column", "col", "rename", board.boardId, column.columnId).setDisabled(locked),
+            // Greyed out only when there is nothing to archive.
+            actionButton("Archive all tasks", "col", "archiveask", board.boardId, column.columnId)
+                .setDisabled(locked || tasks.length === 0),
             actionButton("Delete column", "col", "ask", board.boardId, column.columnId)
                 .setStyle(ButtonStyle.Danger).setDisabled(locked),
         ));
@@ -244,6 +247,27 @@ function columnDeletePanel(boardId, column, taskCount) {
             .setCustomId(encode("col", "delete", boardId, column.columnId))
             .setStyle(ButtonStyle.Danger)
             .setLabel("Delete column"),
+        new ButtonBuilder()
+            .setCustomId(encode("board", "open", boardId))
+            .setStyle(ButtonStyle.Secondary)
+            .setLabel("Cancel"),
+    ));
+    return container;
+}
+
+/** Asks before archiving every task in a column; they can be restored one by one. */
+function columnArchivePanel(boardId, column, taskCount) {
+    const container = warningContainer(
+        "Archive every task in this column?",
+        `The ${taskCount} task${taskCount === 1 ? "" : "s"} in **${plain(column.name, 60)}** leave the board for everyone. `
+            + "They keep everything, and each can be brought back with `/task restore` or from the website's Archived tasks filter.",
+    );
+    container.addActionRowComponents(new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId(encode("col", "archive", boardId, column.columnId))
+            .setStyle(ButtonStyle.Primary)
+            .setLabel("Archive all tasks")
+            .setDisabled(taskCount === 0),
         new ButtonBuilder()
             .setCustomId(encode("board", "open", boardId))
             .setStyle(ButtonStyle.Secondary)
@@ -308,6 +332,7 @@ function boardEditModal(board) {
 module.exports = {
     COLUMN_PAGE_SIZE,
     columnDeletePanel,
+    columnArchivePanel,
     boardCreateModal,
     boardEditModal,
     columnCreateModal,

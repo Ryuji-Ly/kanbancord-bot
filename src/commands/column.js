@@ -27,6 +27,10 @@ module.exports = {
                 .addIntegerOption((option) =>
                     option.setName("position").setDescription("Where it goes: 1 is the first column").setRequired(true).setMinValue(1)))
         .addSubcommand((sub) =>
+            sub.setName("archive-tasks").setDescription("Archive every task in a column, such as Done")
+                .addStringOption(boardOption())
+                .addStringOption(columnOption()))
+        .addSubcommand((sub) =>
             sub.setName("delete").setDescription("Delete a column and its tasks")
                 .addStringOption(boardOption())
                 .addStringOption(columnOption())),
@@ -46,6 +50,12 @@ module.exports = {
                 examples: ["/column move board:Sprint column:Review position:3"],
                 notes: "A position past the end moves it to the end.",
             },
+            "archive-tasks": {
+                description: "Asks for confirmation, then takes every task in the column off the board. They keep "
+                    + "everything and can be restored one by one.",
+                examples: ["/column archive-tasks board:Sprint column:Done"],
+                notes: "Restore a task with `/task restore`, or from the website's Archived tasks filter.",
+            },
             delete: {
                 description: "Asks for confirmation, then deletes the column and every task in it.",
                 examples: ["/column delete board:Sprint column:Old"],
@@ -62,6 +72,8 @@ module.exports = {
                 return flows.columnRename(ctx);
             case "move":
                 return flows.columnMove(ctx);
+            case "archive-tasks":
+                return flows.columnArchiveTasks(ctx);
             case "delete":
                 return flows.columnDelete(ctx);
         }
