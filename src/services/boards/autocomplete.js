@@ -1,6 +1,7 @@
 const { colorChoices } = require("../../utils/colors");
 const { truncate } = require("../../utils/format");
 const { autocompleteChoices, getSnapshot, listBoards, resolveBoard, snapshotModel } = require("./boardData");
+const { archivedTasks } = require("./taskActions");
 
 /**
  * Suggestions while typing a board, task, column, priority, label or colour option. Only what the user can
@@ -32,9 +33,8 @@ async function chosenBoard(ctx, boardInput) {
     }
 }
 
-function taskChoices(model, typed) {
+function taskChoices(model, typed, tasks = model.columns.flatMap((column) => model.tasksIn(column.columnId))) {
     const columnNames = new Map(model.columns.map((column) => [column.columnId, column.name]));
-    const tasks = model.columns.flatMap((column) => model.tasksIn(column.columnId));
     return autocompleteChoices(
         tasks,
         typed,
@@ -83,6 +83,9 @@ async function respondBoardOptions(ctx) {
         choices = await boardChoices(ctx, focused.value);
     } else if (focused.name === "color") {
         choices = colorChoices(focused.value);
+    } else if (focused.name === "task" && options.getSubcommand(false) === "restore") {
+        const model = await chosenBoard(ctx, options.getString("board"));
+        choices = model ? taskChoices(model, focused.value, await archivedTasks(ctx, model.board.boardId).catch(() => [])) : [];
     } else if (FOLLOWING_BOARD[focused.name]) {
         const model = await chosenBoard(ctx, options.getString("board"));
         choices = model ? FOLLOWING_BOARD[focused.name](model, focused.value, ctx.interaction.commandName) : [];

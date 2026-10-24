@@ -113,6 +113,8 @@ test("labels, roles, moves and deletes send the right requests", async () => {
     await actions.addColumn(ctx, 1, "  Review ");
     await actions.moveColumn(ctx, 1, 12, 99);
     await actions.setBoardArchived(ctx, 1, true);
+    await actions.setTaskArchived(ctx, 1, 100, true);
+    await actions.archiveColumnTasks(ctx, 1, 10);
     const made = writes(calls).map((call) => ({ method: call.method, path: call.path, body: call.body, query: call.query }));
 
     assert.deepEqual(made[0], { method: "DELETE", path: "/boards/1/tasks/100/labels/9", body: undefined, query: undefined });
@@ -124,6 +126,8 @@ test("labels, roles, moves and deletes send the right requests", async () => {
     assert.deepEqual(made[5].body, { name: "Review", boardId: 1 });
     assert.deepEqual(made[6].body, { index: 2 }, "a position past the end moves the column to the end");
     assert.deepEqual(made[7].query, { archived: true });
+    assert.deepEqual(made[8], { method: "PATCH", path: "/boards/1/tasks/100/archive", body: undefined, query: { archived: true } });
+    assert.equal(made[9].method + made[9].path, "POST/boards/1/columns/10/archive-tasks");
 });
 
 test("the task menu offers everything the board allows, whoever ran the command", () => {
@@ -137,10 +141,10 @@ test("the task menu offers everything the board allows, whoever ran the command"
     };
 
     assert.deepEqual(offered({}),
-        ["edit", "move", "assignme", "people", "roles", "labels", "priority", "due", "comment", "follow", "delete"],
+        ["edit", "move", "assignme", "people", "roles", "labels", "priority", "due", "comment", "follow", "archive", "delete"],
         "no permissions at all, yet everything is offered: someone else in the channel may use it");
     assert.deepEqual(offered({ LABELS: false, PRIORITIES: false, DUE_DATES: false, COMMENTS: false, ASSIGNEES: false }),
-        ["edit", "move", "follow", "delete"], "only what the board has switched off is left out");
+        ["edit", "move", "follow", "archive", "delete"], "only what the board has switched off is left out");
     assert.deepEqual(offered({}, { ...snapshot.board, isArchived: true }), ["follow"],
         "an archived board cannot be changed by anyone, only followed");
     const following = snapshotModel({ ...snapshot, followedTaskIds: [100] });

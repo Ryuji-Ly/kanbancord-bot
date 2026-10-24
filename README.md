@@ -31,7 +31,9 @@ on every board and task, live board posts, update feeds, a thread per task, and 
 | `/board export` · `import` | Download a board as a file (labels, priorities, assignees, comments and permission rules optional), and create a new board from one, here or in another server. |
 | **Create task** (on a message) | Long-press or right-click any message, then Apps → Create task: the message becomes a task, linking back to it. |
 | `/column add` · `rename` · `move` · `delete` | Shape a board's columns. |
+| `/column archive-tasks` | Archive every task in a column at once, such as a long Done column. |
 | `/task create` · `view` · `edit` · `move` · `delete` | Add tasks and move them through the board. |
+| `/task archive` · `restore` | Take a task off the board, keeping everything, and bring it back to the end of its column. |
 | `/task assign` · `unassign` | Assign people or whole roles. |
 | `/task label` · `priority` · `due` | Organise tasks with labels, priorities and due dates. |
 | `/label` · `/priority` `list` · `create` · `edit` · `delete` | Manage a board's labels and priority levels (`/priority move` reorders them). |

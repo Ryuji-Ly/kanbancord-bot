@@ -96,7 +96,9 @@ const STEPS = [
             "- `/column add board:Sprint name:Review` adds one at the end\n"
                 + "- `/column rename` renames one\n"
                 + "- `/column move column:Review position:3` moves it (1 is the leftmost)\n"
-                + "- `/column delete` deletes one and its tasks, after asking",
+                + "- `/column delete` deletes one and its tasks, after asking\n"
+                + "- `/column archive-tasks column:Done` takes every task in it off the board, keeping them; "
+                + "`/task restore` brings one back",
             "Or open a column from `/board view`: it has a menu to move it and buttons to add a task, rename or delete it. "
                 + "`/board view` itself has **Add column**.",
             "The last column counts as **done**: tasks there get no due-date reminders.",

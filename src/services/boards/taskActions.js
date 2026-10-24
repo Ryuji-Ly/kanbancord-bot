@@ -231,6 +231,24 @@ async function deleteTask(ctx, boardId, taskId) {
     return after(ctx, boardId, { columnId: task.columnId, notice: `Deleted **${task.title}**` });
 }
 
+/** Archives a task (off the board, unchangeable, kept) or restores it to the end of its column. */
+async function setTaskArchived(ctx, boardId, taskId, archived) {
+    const task = await ctx.api.patch(`/boards/${boardId}/tasks/${taskId}/archive`, { query: { archived } });
+    return after(ctx, boardId, {
+        taskId: task.taskId,
+        columnId: task.columnId,
+        notice: archived
+            ? `Archived **${task.title}**. Bring it back with \`/task restore\``
+            : `Restored **${task.title}** to the end of its column`,
+    });
+}
+
+/** The board's archived tasks, which its snapshot leaves out. */
+async function archivedTasks(ctx, boardId) {
+    const page = await ctx.api.get(`/boards/${boardId}/tasks`, { query: { archived: true, size: 500 } });
+    return Array.isArray(page?.content) ? page.content : [];
+}
+
 async function addComment(ctx, boardId, taskId, content) {
     await ctx.api.post(`/boards/${boardId}/tasks/${taskId}/comments`, {
         body: { taskId: Number(taskId), content: content.trim() },
@@ -278,6 +296,21 @@ async function deleteColumn(ctx, boardId, columnId) {
     return after(ctx, boardId, { notice: `Deleted column **${column.name}**` });
 }
 
+/** Archives every task in a column, as one change. */
+async function archiveColumnTasks(ctx, boardId, columnId) {
+    const column = (await currentModel(ctx, boardId)).column(Number(columnId));
+    if (!column) {
+        throw new UserFacingError("Column not found", "That column no longer exists.");
+    }
+    const { archived } = await ctx.api.post(`/boards/${boardId}/columns/${column.columnId}/archive-tasks`);
+    return after(ctx, boardId, {
+        columnId: column.columnId,
+        notice: archived > 0
+            ? `Archived ${archived} task${archived === 1 ? "" : "s"} from **${column.name}**`
+            : `**${column.name}** had no tasks to archive`,
+    });
+}
+
 // ── Boards ───────────────────────────────────────────────────────────────────
 
 async function createBoard(ctx, { name, description }) {
@@ -322,11 +355,14 @@ module.exports = {
     setLabels,
     setFollowing,
     deleteTask,
+    setTaskArchived,
+    archivedTasks,
     addComment,
     addColumn,
     renameColumn,
     moveColumn,
     deleteColumn,
+    archiveColumnTasks,
     createBoard,
     editBoard,
     setBoardArchived,

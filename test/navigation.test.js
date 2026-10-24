@@ -40,7 +40,7 @@ test("every view leads onward: boards, a board, a column, comments", () => {
 
     const column = views.buildColumnView(model, 10, 0);
     assertValid(column);
-    assert.deepEqual(ids(column), ["task:open", "col:move", "board:page", "board:page", "board:open", "col:addtask", "col:rename", "col:ask"]);
+    assert.deepEqual(ids(column), ["task:open", "col:move", "board:page", "board:page", "board:open", "col:addtask", "col:rename", "col:archiveask", "col:ask"]);
     assert.match(JSON.stringify(column.toJSON()), /"label":"Position 1 \(here now\)","value":"1","default":true/);
 
     const comments = buildCommentPage({ board: model.board, task: model.task(100), comments: [], page: 0, pages: 1, total: 0 });
