@@ -39,6 +39,14 @@ module.exports = {
             withBoardAndTask(sub.setName("due").setDescription("Set or remove a task's due date"))
                 .addStringOption((option) =>
                     option.setName("when").setDescription(`When, in UTC: ${EXAMPLES}`).setRequired(true).setMaxLength(40)))
+        .addSubcommand((sub) =>
+            sub.setName("import").setDescription("Add tasks from a pasted list or a file")
+                .addStringOption(boardOption())
+                .addStringOption(columnOption("Where tasks go that name no column (the first one if left out)", false))
+                .addAttachmentOption((option) =>
+                    option.setName("file").setDescription("A text, Markdown, CSV or board file; leave out to paste a list"))
+                .addBooleanOption((option) =>
+                    option.setName("new-columns").setDescription("Create columns the list names that the board lacks (default: yes)")))
         .addSubcommand((sub) => withBoardAndTask(sub.setName("archive").setDescription("Take a task off the board, keeping it")))
         .addSubcommand((sub) => withBoardAndTask(sub.setName("restore").setDescription("Bring back an archived task")))
         .addSubcommand((sub) => withBoardAndTask(sub.setName("delete").setDescription("Delete a task"))),
@@ -89,6 +97,15 @@ module.exports = {
                 notes: "Times are in UTC; the reply shows the result in your own time zone to check. "
                     + "A date on its own is due at the end of that day.",
             },
+            import: {
+                description: "Adds tasks to a board from a list you paste in a form, or from an attached file. One "
+                    + "task per line, with or without bullets, numbers or checkboxes; indented items become a "
+                    + "checklist, # headings start a column, and ticked items go to the last column. Files can also "
+                    + "be CSV, a spreadsheet's cells, Markdown tables or a KanbanCord board file.",
+                examples: ["/task import board:Sprint", "/task import board:Reading list column:To read file:books.csv"],
+                notes: "You see a preview first, only to you: which column each task goes to and anything left out. "
+                    + "Nothing changes until you press Import.",
+            },
             archive: {
                 description: "Takes the task off the board for everyone. It keeps its details, people, labels and "
                     + "comments, but cannot be changed until it is restored.",
@@ -130,6 +147,8 @@ module.exports = {
                 return flows.taskPriority(ctx);
             case "due":
                 return flows.taskDue(ctx);
+            case "import":
+                return flows.taskImport(ctx);
             case "archive":
                 return flows.taskArchive(ctx);
             case "restore":

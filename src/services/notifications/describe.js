@@ -87,6 +87,10 @@ function describeEntry(entry, names = {}) {
             return `${actor} archived it`;
         case "TASK_RESTORED":
             return `${actor} restored it`;
+        case "TASKS_IMPORTED": {
+            const count = Number(snapshot.count) || 0;
+            return `${actor} imported ${count} task${count === 1 ? "" : "s"}`;
+        }
         case "COLUMN_TASKS_ARCHIVED":
             return `${actor} archived every task in column ${bold(snapshot.name ?? "")} (${snapshot.count ?? "?"})`;
         case "TASK_MOVED":

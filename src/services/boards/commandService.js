@@ -7,6 +7,7 @@ const { parseDue } = require("../../utils/dueDate");
 const { UserFacingError } = require("../../utils/errorMessages");
 const { plain } = require("../../utils/format");
 const actions = require("./taskActions");
+const importer = require("./taskImport");
 const { hiddenAudience, interactionChannel, postBoard, requireCanPost } = require("./boardPosts");
 const {
     getSnapshot,
@@ -127,6 +128,21 @@ async function taskDelete(ctx) {
     await ctx.reply(panels.deletePanel(model, task));
 }
 
+/** A form for pasting a list, or straight to the preview with a file attached. */
+async function taskImport(ctx) {
+    const { board, columnId, createColumns, file } = await importer.commandInput(ctx);
+    if (!file) {
+        return ctx.showModal(importer.importModal(board.boardId, columnId, createColumns));
+    }
+    await ctx.defer({ ephemeral: true });
+    await importer.showPreview(ctx, board, {
+        text: await importer.readText(file),
+        format: importer.formatOfName(file.name),
+        defaultColumnId: columnId,
+        createColumns,
+    });
+}
+
 async function taskArchive(ctx) {
     await ctx.defer();
     const { board, task } = await boardAndTask(ctx);
@@ -240,6 +256,7 @@ module.exports = {
     taskPriority,
     taskDue,
     taskDelete,
+    taskImport,
     taskArchive,
     taskRestore,
     commentAdd,
