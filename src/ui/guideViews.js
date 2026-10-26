@@ -119,6 +119,7 @@ const STEPS = [
                 + "change is checked when they click.",
             "Something said in chat belongs on the board? Long-press or right-click the message, then **Apps → Create "
                 + "task**: the message fills in the form, with a link back to it.",
+            "Already have a list? `/task import` adds it all at once, one task per line, after a preview only you see.",
         ],
     },
     {
