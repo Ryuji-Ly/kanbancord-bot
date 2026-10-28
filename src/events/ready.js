@@ -5,6 +5,7 @@ const { startPostWorker } = require("../delivery/postWorker");
 const { startListingStats } = require("../services/listings/listingStats");
 const { startHeartbeat } = require("../services/status/heartbeat");
 const { startPresence } = require("../services/status/presence");
+const { loadApplicationEmojis } = require("../utils/emojis");
 
 module.exports = {
     name: "clientReady",
@@ -14,6 +15,9 @@ module.exports = {
 
         // Each shard shows its own status, so this runs on every shard.
         startPresence(client);
+
+        // The application's own emojis, such as /ping's latency marks; every shard keeps its own copy.
+        loadApplicationEmojis(client);
 
         // In the background: waits for the API if it is still starting, then keeps a regular re-sync.
         startSyncSchedule(client);

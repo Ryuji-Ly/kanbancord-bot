@@ -19,25 +19,27 @@ const count = (n, one, many) => `${number.format(n)} ${n === 1 ? one : many}`;
 const custom = (state) => ({ type: ActivityType.Custom, name: "Custom Status", state });
 
 /**
- * The lines to rotate through, for the numbers known so far.
+ * The lines to rotate through, for the numbers known so far. All are custom statuses: Discord shows only
+ * those in the member list (Watching and Listening appear only on the bot's profile), and they read freely.
  * @param {{ guilds?: number, users?: number, boards?: number, tasks?: number }} stats
  */
 function activities(stats = {}) {
     const lines = [];
     if (stats.guilds) {
-        lines.push({ type: ActivityType.Watching, name: count(stats.guilds, "server", "servers") });
+        lines.push(custom(`Organising ${count(stats.guilds, "server", "servers")}`));
     }
     if (stats.boards) {
-        lines.push({ type: ActivityType.Watching, name: count(stats.boards, "kanban board", "kanban boards") });
+        lines.push(custom(`${count(stats.boards, "kanban board", "kanban boards")} and counting`));
     }
     if (stats.tasks) {
-        lines.push(custom(`📋 Keeping track of ${count(stats.tasks, "task", "tasks")}`));
+        lines.push(custom(`Keeping track of ${count(stats.tasks, "task", "tasks")}`));
     }
     if (stats.users) {
-        lines.push(custom(`👥 Helping ${count(stats.users, "member", "members")} get organised`));
+        lines.push(custom(`Helping ${count(stats.users, "member", "members")} get organised`));
     }
-    lines.push({ type: ActivityType.Listening, name: "/help" });
+    lines.push(custom("/help for every command"));
     lines.push(custom("New here? Try /guide"));
+    lines.push(custom("Every board at kanbancord.com"));
     return lines;
 }
 
