@@ -15,6 +15,7 @@ const { encode } = require("../utils/customId");
 const { loadFeatures } = require("../services/settings/features");
 const { buildFeaturesPanel } = require("../ui/featureViews");
 const { buildServerNotificationsPanel } = require("../ui/settingsViews");
+const { serverReminders } = require("../services/settings/reminders");
 
 const POSTABLE = [ChannelType.GuildText, ChannelType.GuildAnnouncement];
 
@@ -27,6 +28,11 @@ module.exports = {
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
         .addSubcommand((sub) => sub.setName("settings").setDescription("Show the audit log channel and update feeds"))
         .addSubcommand((sub) => sub.setName("features").setDescription("Choose the features this server uses, or simple mode"))
+        .addSubcommand((sub) =>
+            sub.setName("reminders").setDescription("When people are reminded before a task is due")
+                .addStringOption((option) =>
+                    option.setName("times").setDescription("Times before the due date, like 1d, 3h; leave out to see them")
+                        .setMaxLength(100)))
         .addSubcommand((sub) =>
             sub.setName("audit-channel").setDescription("Set the channel that mirrors the audit log, or turn it off")
                 .addChannelOption((option) =>
@@ -52,6 +58,15 @@ module.exports = {
                     + "Boards can switch features off for themselves on the website. Open permissions, which let "
                     + "everyone who can talk here do anything with boards and tasks, are switched separately below the "
                     + "menu, after a warning; they cannot be on together with custom permissions.",
+            },
+            reminders: {
+                description: "Shows or sets when people are reminded before a task is due, on every board without times "
+                    + "of its own. They are also reminded once a task is overdue.",
+                examples: ["/kanbancord reminders", "/kanbancord reminders times:1d, 3h", "/kanbancord reminders times:none"],
+                notes: "Up to five times, from 5 minutes to 30 days before; write them like `1w`, `2d`, `3h`, `30m`. "
+                    + "`none` leaves only the overdue reminder, `default` is a day before. When several times have "
+                    + "passed at once, only the latest is sent. Boards can have their own times (`/board reminders`), and "
+                    + "each person can choose their own (`/notifications reminders:`).",
             },
             settings: {
                 description: "Shows where the bot posts about this server: the audit log channel and each update feed, "
@@ -84,6 +99,8 @@ module.exports = {
         switch (options.getSubcommand()) {
             case "settings":
                 return ctx.reply(buildServerNotificationsPanel(await serverSettings(ctx)));
+            case "reminders":
+                return ctx.reply(await serverReminders(ctx, options.getString("times")));
             case "features": {
                 const { enabled, open } = await loadFeatures(ctx);
                 return ctx.reply(buildFeaturesPanel(enabled, open));

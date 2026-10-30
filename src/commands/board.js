@@ -8,6 +8,7 @@ const { resolveBoard } = require("../services/boards/boardData");
 const { boardFeeds } = require("../interactions/feedSettings");
 const { buildBoardFeedList } = require("../ui/feedEditorViews");
 const { boardOption } = require("../utils/commandOptions");
+const { boardReminders } = require("../services/settings/reminders");
 
 /** A true/false option for each optional part of a board file. */
 function withPartOptions(sub, describe) {
@@ -42,6 +43,11 @@ module.exports = {
         .addSubcommand((sub) =>
             sub.setName("notifications").setDescription("Change what the server's feeds post about a board")
                 .addStringOption(boardOption()))
+        .addSubcommand((sub) =>
+            sub.setName("reminders").setDescription("When people are reminded before a task on this board is due")
+                .addStringOption(boardOption())
+                .addStringOption((option) => option.setName("times")
+                    .setDescription("Like 1d, 3h; default for the server's; leave out to see them").setMaxLength(100)))
         .addSubcommand((sub) =>
             sub.setName("threads").setDescription("A thread per task: show the board's setting, or change it")
                 .addStringOption(boardOption())
@@ -132,6 +138,14 @@ module.exports = {
                 examples: ["/board import file:sprint.kanbancord.json", "/board import file:sprint.kanbancord.json name:Sprint 13 permissions:False"],
                 notes: "Needs permission to create boards. A name already in use gets a number added.",
             },
+            reminders: {
+                description: "Shows or sets when people are reminded before a task on this board is due, instead of the "
+                    + "server's times. They are also reminded once a task is overdue.",
+                examples: ["/board reminders board:Sprint", "/board reminders board:Sprint times:2d, 1h",
+                    "/board reminders board:Sprint times:default"],
+                notes: "Needs permission to edit the board. `default` goes back to the server's times "
+                    + "(`/kanbancord reminders`). Each person can still choose their own with `/notifications reminders:`.",
+            },
             threads: {
                 description: "Gives each task on the board its own thread for discussion, in one of the board's update "
                     + "feed channels: started from the task's post there, or on its own. Threads follow the task's title "
@@ -181,6 +195,9 @@ module.exports = {
                 return transfer.boardExport(ctx);
             case "import":
                 return transfer.boardImport(ctx);
+            case "reminders":
+                await ctx.defer({ ephemeral: true });
+                return ctx.reply(await boardReminders(ctx, options.getString("board", true), options.getString("times")));
             case "threads":
                 await ctx.defer({ ephemeral: true });
                 return ctx.reply(await boardThreads(ctx, options.getString("board", true), {

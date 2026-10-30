@@ -28,6 +28,7 @@ on every board and task, live board posts, update feeds, a thread per task, and 
 | `/board post` | Post a board in a channel or thread; the post updates itself whenever the board changes. |
 | `/board notifications` | Change what the server's update feeds post about one board. |
 | `/board threads` | Give each task on a board its own thread in a feed channel, public or private. |
+| `/board reminders` | When people are reminded before a task on one board is due, instead of the server's times. |
 | `/board export` · `import` | Download a board as a file (labels, priorities, assignees, comments and permission rules optional), and create a new board from one, here or in another server. |
 | **Create task** (on a message) | Long-press or right-click any message, then Apps → Create task: the message becomes a task, linking back to it. |
 | `/column add` · `rename` · `move` · `delete` | Shape a board's columns. |
@@ -39,9 +40,10 @@ on every board and task, live board posts, update feeds, a thread per task, and 
 | `/task label` · `priority` · `due` | Organise tasks with labels, priorities and due dates. |
 | `/label` · `/priority` `list` · `create` · `edit` · `delete` | Manage a board's labels and priority levels (`/priority move` reorders them). |
 | `/comment list` · `add` | Discuss a task. |
-| `/notifications` | Choose what the bot tells you by direct message. |
+| `/notifications` | Choose what the bot tells you by direct message; `reminders:` sets your own reminder times before a due date, everywhere or for one `board`. |
 | `/ping` | Latency to Discord and to KanbanCord's API, and how long the bot has been up. |
 | `/kanbancord features` | For server managers (Manage Server): simple mode, or which features the server uses. |
+| `/kanbancord reminders` | For server managers: when people are reminded before a task is due (a day before unless changed; up to five times). |
 | `/kanbancord settings` · `audit-channel` · `feed` | For server managers: update feeds (what they post, who they mention, which boards, buttons on posts) and the audit log channel. |
 | `/audit` | The audit log, newest first, filtered by board, person or kind of change. Only the person who ran it sees it. |
 | `/report` | Send a bug report or suggestion to the developer. |
