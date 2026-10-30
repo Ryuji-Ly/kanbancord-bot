@@ -28,10 +28,15 @@ function forUser({ userId, guildId }) {
         put: call("PUT"),
         patch: call("PATCH"),
         delete: call("DELETE"),
-        /** The user's own notification settings: the one thing outside the server the bot may touch. */
+        /** The user's own notification settings and reminder times: the only things outside the server it may touch. */
         myNotifications: {
             get: () => request("/api/me/notifications", { headers }),
             update: (changes) => request("/api/me/notifications", { method: "PUT", headers, body: changes }),
+        },
+        /** The user's own reminder times for every board. */
+        myReminders: {
+            get: () => request("/api/me/reminders", { headers }),
+            update: (changes) => request("/api/me/reminders", { method: "PUT", headers, body: changes }),
         },
     };
 }
