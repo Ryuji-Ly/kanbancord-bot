@@ -7,6 +7,7 @@ const panels = require("../ui/taskPanels");
 const { parseDue } = require("../utils/dueDate");
 const { UserFacingError } = require("../utils/errorMessages");
 const { readNewTask } = require("../ui/taskForm");
+const { sendFeatureSuggestions } = require("../services/guide/featureSuggestions");
 
 /**
  * Changing a task from its view: the actions menu, the panels it opens, and the forms. Every change
@@ -126,14 +127,17 @@ registerModalHandler("act", async (ctx, { action, args }) => {
     await ctx.deferUpdate();
     switch (action) {
         case "edit":
-            return showResult(ctx, boardId, await actions.editTask(ctx, boardId, id, {
+            await showResult(ctx, boardId, await actions.editTask(ctx, boardId, id, {
                 title: fields.getTextInputValue("title"),
                 description: optionalField(ctx, "description"),
             }));
+            // A new or changed title is when tags written by hand show up; the tip is private.
+            return sendFeatureSuggestions(ctx, boardId);
         case "comment":
             return showResult(ctx, boardId, await actions.addComment(ctx, boardId, id, fields.getTextInputValue("content")));
         case "create":
-            return showResult(ctx, boardId, await actions.createTask(ctx, boardId, id, readNewTask(fields)));
+            await showResult(ctx, boardId, await actions.createTask(ctx, boardId, id, readNewTask(fields)));
+            return sendFeatureSuggestions(ctx, boardId);
         case "newlabel": {
             const created = await createLabel(ctx, boardId, {
                 name: fields.getTextInputValue("name"),

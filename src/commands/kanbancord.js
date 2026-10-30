@@ -47,7 +47,8 @@ module.exports = {
                     + "comments, custom permissions), with a menu to switch them on or off. With none on, the server "
                     + "is in simple mode: boards, columns, and tasks with a title and description.",
                 examples: ["/kanbancord features"],
-                notes: "New servers start in simple mode. Switching a feature off hides it without deleting anything. "
+                notes: "Anyone with Manage Server (or Administrator) may change them. New servers start in simple mode. "
+                    + "Switching a feature off hides it without deleting anything. "
                     + "Boards can switch features off for themselves on the website. Open permissions, which let "
                     + "everyone who can talk here do anything with boards and tasks, are switched separately below the "
                     + "menu, after a warning; they cannot be on together with custom permissions.",
