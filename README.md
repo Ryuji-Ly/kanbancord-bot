@@ -37,7 +37,7 @@ on every board and task, live board posts, update feeds, a thread per task, and 
 | `/task import` | Add tasks to a board from a pasted list or a file (text, Markdown, CSV, spreadsheet cells or a board file), after a private preview. |
 | `/task assign` · `unassign` | Assign people or whole roles. |
 | `/task label` · `priority` · `due` | Organise tasks with labels, priorities and due dates. |
-| `/label` · `/priority` `list` · `create` · `edit` · `delete` | Manage a board's labels and priority levels (`/priority move` reorders them). |
+| `/label` · `/priority` `list` · `create` · `edit` · `delete` | Manage a board's labels and priority levels (`/priority move` reorders them). `/label list` shows how many of each label's tasks are done and who has the open ones. |
 | `/comment list` · `add` | Discuss a task. |
 | `/notifications` | Choose what the bot tells you by direct message. |
 | `/ping` | Latency to Discord and to KanbanCord's API, and how long the bot has been up. |

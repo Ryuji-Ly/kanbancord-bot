@@ -38,7 +38,9 @@ module.exports = {
     info: {
         subcommands: {
             list: {
-                description: "Shows every label on the board, with its colour and how many tasks have it.",
+                description: "Shows every label on the board with its colour, how many of its tasks are done, and "
+                    + "who still has the open ones.",
+                notes: "Done means in the board's last column, or archived.",
                 examples: ["/label list board:Sprint"],
             },
             create: {

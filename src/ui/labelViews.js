@@ -9,6 +9,55 @@ const { appendFooter, appendText, buildContainer, warningContainer } = require("
 
 const tasksText = (count) => `${count} task${count === 1 ? "" : "s"}`;
 
+/**
+ * How far a label's tasks are: done (in the board's last column, or archived) out of all of them, and who still
+ * has the open ones. Archived tasks are not in the snapshot, but their labels are: a label on a task the snapshot
+ * does not have is on an archived task.
+ * @returns {{ total: number, done: number, people: Array<[string, number]>, unassigned: number }}
+ */
+function labelProgress(model, labelId) {
+    const onBoard = new Map(model.tasks.map((task) => [task.taskId, task]));
+    const lastColumn = model.columns.at(-1)?.columnId;
+    let total = 0;
+    let done = 0;
+    let unassigned = 0;
+    const people = new Map();
+    for (const taskLabel of model.taskLabels) {
+        if (taskLabel.labelId !== labelId) {
+            continue;
+        }
+        total++;
+        const task = onBoard.get(taskLabel.taskId);
+        if (!task || task.columnId === lastColumn) {
+            done++;
+            continue;
+        }
+        const assignees = model.assigneesOf(task);
+        if (assignees.length === 0) {
+            unassigned++;
+        }
+        for (const userId of assignees) {
+            people.set(userId, (people.get(userId) ?? 0) + 1);
+        }
+    }
+    return { total, done, people: [...people].sort((a, b) => b[1] - a[1]), unassigned };
+}
+
+/** "7 of 12 done · open: @Sam 3, @Alex 2, 1 unassigned", or "no tasks yet". Mentions in views never ping. */
+function progressText(model, labelId) {
+    const { total, done, people, unassigned } = labelProgress(model, labelId);
+    if (total === 0) {
+        return "no tasks yet";
+    }
+    const open = [
+        ...people.slice(0, 5).map(([userId, count]) => `<@${userId}> ${count}`),
+        ...(people.length > 5 ? [`${people.length - 5} more`] : []),
+        ...(model.features.ASSIGNEES && unassigned > 0 ? [`${unassigned} unassigned`] : []),
+    ];
+    const rest = total - done;
+    return `${done} of ${total} done${rest > 0 && open.length > 0 ? ` · open: ${open.join(", ")}` : ""}`;
+}
+
 function listOf(container, lines, empty) {
     if (lines.length === 0) {
         appendText(container, empty);
@@ -27,15 +76,13 @@ function switchedOff(container, model, feature, what) {
     }
 }
 
-/** /label list: every label with its colour and how many tasks use it. */
+/** /label list: every label with its colour, how many of its tasks are done and who has the open ones. */
 function buildLabelList(model) {
     const { board } = model;
     const container = buildContainer({ title: `Labels · ${plain(board.name, 80)}` });
     switchedOff(container, model, "LABELS", "Labels");
-    const lines = model.labels().map((label) => {
-        const used = model.taskLabels.filter((taskLabel) => taskLabel.labelId === label.labelId).length;
-        return `${colorDot(label.color)} **${plain(label.name, 60)}** · ${tasksText(used)}`;
-    });
+    const lines = model.labels().map((label) =>
+        `${colorDot(label.color)} **${plain(label.name, 60)}** · ${progressText(model, label.labelId)}`);
     listOf(container, lines, "This board has no labels yet. Add one with `/label create`.");
     appendFooter(container, "/label create · /label edit · /label delete · /task label to put one on a task");
     container.addActionRowComponents(new ActionRowBuilder().addComponents(linkButton("Open on website", boardUrl(board))));
@@ -90,4 +137,4 @@ function priorityDeletePanel(model, level) {
     );
 }
 
-module.exports = { buildLabelList, buildPriorityList, labelDeletePanel, priorityDeletePanel };
+module.exports = { labelProgress, buildLabelList, buildPriorityList, labelDeletePanel, priorityDeletePanel };

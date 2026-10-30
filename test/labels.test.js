@@ -131,7 +131,7 @@ test("lists and delete confirmations are valid for Discord and count the tasks a
         assert.ok(textLength(view) < 4000);
     }
     const labels = JSON.stringify(views.buildLabelList(model).toJSON());
-    assert.ok(labels.includes("🔵 **Front\\\\`end** · 1 task"), labels);
+    assert.ok(labels.includes("🔵 **Front\\\\`end** · 0 of 1 done · open: <@223456789012345678> 1"), labels);
     const levels = JSON.stringify(views.buildPriorityList(model).toJSON());
     assert.ok(levels.includes("1. 🔴 **Critical** · 5 tasks"), "every fixture task is Critical");
     assert.ok(levels.indexOf("Critical") < levels.indexOf("Ignorable"), "most urgent first");
@@ -168,4 +168,23 @@ test("autocomplete: /priority never offers \"No priority\", /task priority does,
     assert.deepEqual(await respond("priority", { name: "priority", value: "" }), ["1", "2", "3", "4", "5"]);
     assert.deepEqual(await respond("task", { name: "priority", value: "" }), ["1", "2", "3", "4", "5", "none"]);
     assert.deepEqual(await respond("label", { name: "color", value: "red" }, null), ["#dc2626"]);
+});
+
+test("a label's progress counts its last-column and archived tasks as done, and who has the open ones", () => {
+    const snapshot = snapshotFixture({ tasks: 4 });
+    snapshot.tasks[1].columnId = 12;
+    snapshot.taskLabels = [
+        { id: 1, taskId: 100, labelId: 5 },
+        { id: 2, taskId: 101, labelId: 5 },
+        { id: 3, taskId: 102, labelId: 5 },
+        { id: 4, taskId: 999, labelId: 5 },
+    ];
+    assert.deepEqual(views.labelProgress(snapshotModel(snapshot), 5),
+        { total: 4, done: 2, people: [["223456789012345678", 1]], unassigned: 1 },
+        "task 101 is in Done, task 999 is archived; 100 is assigned, 102 is not");
+    const text = JSON.stringify(views.buildLabelList(snapshotModel(snapshot)).toJSON());
+    assert.match(text, /2 of 4 done · open: <@223456789012345678> 1, 1 unassigned/);
+
+    const noPeople = snapshotModel({ ...snapshot, features: { ...snapshot.features, ASSIGNEES: false } });
+    assert.doesNotMatch(JSON.stringify(views.buildLabelList(noPeople).toJSON()), /open:/, "nobody to name without assignees");
 });
