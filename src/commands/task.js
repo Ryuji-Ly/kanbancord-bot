@@ -56,6 +56,9 @@ module.exports = {
             create: {
                 description: "Opens a form for the new task's title and description, then shows the task.",
                 examples: ["/task create board:Sprint", "/task create board:Sprint column:Doing"],
+                notes: "If the board's tasks look like they do a switched-off feature by hand, such as tags like [M] "
+                    + "at the start of titles for labels, a private tip suggests it, at most once a day; dismiss it "
+                    + "and it does not come back for that board.",
             },
             view: {
                 description: "Shows a task's details, description, images and who is assigned. Its menu makes "

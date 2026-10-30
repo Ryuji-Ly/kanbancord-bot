@@ -41,7 +41,7 @@ on every board and task, live board posts, update feeds, a thread per task, and 
 | `/comment list` · `add` | Discuss a task. |
 | `/notifications` | Choose what the bot tells you by direct message. |
 | `/ping` | Latency to Discord and to KanbanCord's API, and how long the bot has been up. |
-| `/kanbancord features` | For server managers: simple mode, or which features the server uses. |
+| `/kanbancord features` | For server managers (Manage Server): simple mode, or which features the server uses. |
 | `/kanbancord settings` · `audit-channel` · `feed` | For server managers: update feeds (what they post, who they mention, which boards, buttons on posts) and the audit log channel. |
 | `/audit` | The audit log, newest first, filtered by board, person or kind of change. Only the person who ran it sees it. |
 | `/report` | Send a bug report or suggestion to the developer. |
@@ -52,6 +52,11 @@ command: move, assign, label, set a priority (or make a new label or level right
 **Discuss in thread**. Everything follows your server's Discord roles and each board's permissions, and everything but
 the permission rules themselves can be set up from Discord. The [guides](https://kanbancord.com/guides) explain each
 part in depth.
+
+When a board seems to do a switched-off feature by hand (tags like `[M]` in titles for labels, `P1` for priorities,
+deadlines or names in titles), the reply after creating or editing a task is followed by a private tip with a button
+to switch it on. It shows at most once a day per person and board, and a dismissed tip never comes back for that
+board.
 
 ## Development
 
