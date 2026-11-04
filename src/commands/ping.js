@@ -61,7 +61,7 @@ module.exports = {
     async execute(ctx) {
         // Acknowledging the command is itself a request to Discord: its round trip is the Discord API time.
         const sent = Date.now();
-        await ctx.defer({ ephemeral: true });
+        await ctx.defer();
         const discord = Date.now() - sent;
 
         let api = null;
