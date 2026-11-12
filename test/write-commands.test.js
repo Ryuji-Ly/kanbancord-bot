@@ -13,7 +13,7 @@ const { decode } = require("../src/utils/customId");
 const NOW = new Date("2026-09-25T10:30:00Z");
 
 test("due dates: dates, times, offsets, words, and removing", () => {
-    const iso = (input) => parseDue(input, NOW)?.toISOString() ?? null;
+    const iso = (input) => parseDue(input, { now: NOW })?.toISOString() ?? null;
     assert.equal(iso("2026-10-01"), "2026-10-01T23:59:00.000Z", "a date alone is due at the end of the day");
     assert.equal(iso("2026-10-01 17:00"), "2026-10-01T17:00:00.000Z");
     assert.equal(iso("2026-10-01T09:05"), "2026-10-01T09:05:00.000Z");
@@ -25,13 +25,34 @@ test("due dates: dates, times, offsets, words, and removing", () => {
     assert.equal(iso("in 1 week"), "2026-10-02T23:59:00.000Z");
     assert.equal(iso("in 5 hours"), "2026-09-25T15:30:00.000Z");
     for (const clear of ["none", "clear", "", "  "]) {
-        assert.equal(parseDue(clear, NOW), null);
+        assert.equal(parseDue(clear, { now: NOW }), null);
     }
     for (const bad of ["2026-02-30", "2026-13-01", "next friday", "2026-10-01 25:00", "in -1 days"]) {
-        assert.throws(() => parseDue(bad, NOW), /not a date I understand/, bad);
+        assert.throws(() => parseDue(bad, { now: NOW }), /not a date I understand/, bad);
     }
     assert.equal(toServerTime(new Date("2026-10-01T17:00:00Z")), "2026-10-01T17:00:00");
     assert.equal(toInputText(new Date("2026-10-01T17:00:00Z")), "2026-10-01 17:00");
+});
+
+test("due dates are read in the person's time zone, with summer time, unless an offset is typed", () => {
+    const iso = (input, zone, now = NOW) => parseDue(input, { now, zone })?.toISOString() ?? null;
+    assert.equal(iso("2026-10-01 17:00", "+08:00"), "2026-10-01T09:00:00.000Z");
+    assert.equal(iso("2026-10-01 17:00", "Asia/Singapore"), "2026-10-01T09:00:00.000Z");
+    // Berlin is UTC+2 in summer and UTC+1 in winter.
+    assert.equal(iso("2026-07-01 17:00", "Europe/Berlin"), "2026-07-01T15:00:00.000Z");
+    assert.equal(iso("2026-12-01 17:00", "Europe/Berlin"), "2026-12-01T16:00:00.000Z");
+    assert.equal(iso("2026-12-01 17:00", "America/New_York"), "2026-12-01T22:00:00.000Z");
+    assert.equal(iso("2026-12-01", "-03:30"), "2026-12-02T03:29:00.000Z", "the end of their own day");
+    // "Today" ends at their own midnight; at 20:00 UTC it is already the next day in Singapore.
+    assert.equal(iso("today", "Asia/Singapore"), "2026-09-25T15:59:00.000Z");
+    assert.equal(iso("today", "Asia/Singapore", new Date("2026-09-25T20:00:00Z")), "2026-09-26T15:59:00.000Z");
+    assert.equal(iso("tomorrow", "America/New_York"), "2026-09-27T03:59:00.000Z");
+    assert.equal(iso("in 5 hours", "Asia/Tokyo"), "2026-09-25T15:30:00.000Z", "hours from now are the same anywhere");
+    assert.equal(iso("2026-10-01 17:00 +02:00", "Asia/Tokyo"), "2026-10-01T15:00:00.000Z", "a typed offset wins");
+    assert.equal(iso("2026-10-01 17:00 utc", "Asia/Tokyo"), "2026-10-01T17:00:00.000Z");
+    assert.equal(iso("2026-10-01 17:00", "Not/AZone"), "2026-10-01T17:00:00.000Z", "an unknown zone reads as UTC");
+    assert.equal(toInputText(new Date("2026-10-01T09:00:00Z"), "+08:00"), "2026-10-01 17:00");
+    assert.equal(toInputText(new Date("2026-12-01T16:00:00Z"), "Europe/Berlin"), "2026-12-01 17:00");
 });
 
 /** A context whose API records every request and answers from a board snapshot. */

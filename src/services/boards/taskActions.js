@@ -1,5 +1,6 @@
 const { UserFacingError } = require("../../utils/errorMessages");
 const { parseDue, toServerTime } = require("../../utils/dueDate");
+const { UTC_NOTE, myTimeZone } = require("../settings/timeZone");
 const { parseServerTime } = require("../../utils/format");
 const { forgetBoard, getSnapshot, snapshotModel } = require("./boardData");
 
@@ -57,8 +58,12 @@ async function createTask(ctx, boardId, columnId, { title, description, priority
     let dueDate = null;
     if (due) {
         try {
-            const parsed = parseDue(due);
+            const zone = await myTimeZone(ctx);
+            const parsed = parseDue(due, { zone });
             dueDate = parsed ? toServerTime(parsed) : null;
+            if (parsed && !zone) {
+                notes.push(`-# ${UTC_NOTE}`);
+            }
         } catch {
             notes.push(`"${due}" is not a date I understand, so no due date was set. Set one with \`/task due\`.`);
         }
@@ -129,11 +134,13 @@ async function setPriority(ctx, boardId, taskId, priorityId) {
 }
 
 /** @param {Date | null} due */
-async function setDue(ctx, boardId, taskId, due) {
+/** @param {string | null} [zone] the time zone the date was read in; null (UTC by default) adds a note saying so */
+async function setDue(ctx, boardId, taskId, due, zone) {
     const task = requireTask(await currentModel(ctx, boardId), taskId);
     await ctx.api.put(`/boards/${boardId}/tasks/${task.taskId}`, { body: taskRequest(task, { dueDate: toServerTime(due) }) });
     const when = due ? `<t:${Math.floor(due.getTime() / 1000)}:f>` : null;
-    return after(ctx, boardId, { taskId: task.taskId, notice: when ? `Due ${when}` : "Due date removed" });
+    const notice = when ? `Due ${when}${zone === null ? `\n-# ${UTC_NOTE}` : ""}` : "Due date removed";
+    return after(ctx, boardId, { taskId: task.taskId, notice });
 }
 
 /**

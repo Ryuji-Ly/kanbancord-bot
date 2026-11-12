@@ -38,7 +38,7 @@ module.exports = {
         .addSubcommand((sub) =>
             withBoardAndTask(sub.setName("due").setDescription("Set or remove a task's due date"))
                 .addStringOption((option) =>
-                    option.setName("when").setDescription(`When, in UTC: ${EXAMPLES}`).setRequired(true).setMaxLength(40)))
+                    option.setName("when").setDescription(`When, in your time zone: ${EXAMPLES}`).setRequired(true).setMaxLength(40)))
         .addSubcommand((sub) =>
             sub.setName("import").setDescription("Add tasks from a pasted list or a file")
                 .addStringOption(boardOption())
@@ -97,7 +97,9 @@ module.exports = {
             due: {
                 description: "Sets when the task is due, or removes the due date with none.",
                 examples: ["/task due board:Sprint task:Fix login when:tomorrow", "/task due board:Sprint task:Fix login when:2026-10-01 17:00"],
-                notes: "Times are in UTC; the reply shows the result in your own time zone to check. "
+                notes: "Times are in your time zone: the website sets it from your device, or choose it with "
+                    + "`/notifications timezone:`. Until then they are UTC. The reply shows the result in your own "
+                    + "time to check. "
                     + "A date on its own is due at the end of that day.",
             },
             import: {
