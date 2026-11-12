@@ -89,3 +89,76 @@ test("buttons from an older version of the bot are refused politely", async () =
     await interactionCreate.execute(interaction);
     assert.ok(JSON.stringify(replies[0].payload.components[0].toJSON()).includes("This has expired"));
 });
+
+test("each report has a Reply button that opens a form, for the developer only", async () => {
+    const sent = [];
+    const replies = [];
+    // A different reporter, so the cooldown from the first test does not apply.
+    const interaction = fakeModalSubmit({
+        customId: "kc1:report:submit:suggestion",
+        fields: { title: "Dark mode", description: "Please." },
+        sent,
+        replies,
+    });
+    interaction.user = { id: "777", username: "other", tag: "other" };
+    await interactionCreate.execute(interaction);
+    const text = JSON.stringify(sent[0].payload.components.map((component) => component.toJSON()));
+    assert.ok(text.includes("kc1:report:reply:777:suggestion"));
+
+    const shown = [];
+    const press = (userId) => ({
+        ...fakeModalSubmit({ customId: "kc1:report:reply:777:suggestion", fields: {}, sent: [], replies: shown }),
+        user: { id: userId, username: "someone", tag: "someone" },
+        isModalSubmit: () => false,
+        isMessageComponent: () => true,
+        isButton: () => true,
+        showModal: async (modal) => shown.push({ type: "modal", modal: modal.toJSON() }),
+    });
+    await interactionCreate.execute(press("123456789012345678"));
+    assert.equal(shown.at(-1).type, "modal");
+    assert.equal(shown.at(-1).modal.custom_id, "kc1:report:answer:777:suggestion");
+
+    await interactionCreate.execute(press("555"));
+    assert.ok(JSON.stringify(shown.at(-1).payload.components[0].toJSON()).includes("Only the developer can reply"));
+});
+
+test("a reply reaches the reporter by DM, quoting what it answers", async () => {
+    const sent = [];
+    const replies = [];
+    const interaction = fakeModalSubmit({
+        customId: "kc1:report:answer:777:issue",
+        fields: { reply: "Fixed, thanks!" },
+        sent,
+        replies,
+    });
+    interaction.user = { id: "123456789012345678", username: "dev", tag: "dev" };
+    interaction.message = { components: [{ components: [{ content: "### Issue: Board won't *load*" }, { content: "Steps" }] }] };
+    await interactionCreate.execute(interaction);
+
+    assert.equal(sent.length, 1);
+    assert.equal(sent[0].id, "777");
+    const text = JSON.stringify(sent[0].payload.components.map((component) => component.toJSON()));
+    assert.ok(text.includes("A reply to your issue report"));
+    // The quoted title is escaped, so their own formatting shows as typed.
+    assert.ok(text.includes(JSON.stringify("> Board won't \\*load\\*").slice(1, -1)));
+    assert.ok(text.includes("Fixed, thanks!"));
+    assert.deepEqual(sent[0].payload.allowedMentions, { parse: [] });
+    assert.ok(JSON.stringify(replies.at(-1).payload.components[0].toJSON()).includes("Reply sent"));
+});
+
+test("a reply that cannot be delivered says why", async () => {
+    const replies = [];
+    const interaction = fakeModalSubmit({ customId: "kc1:report:answer:777:issue", fields: { reply: "Hi" }, sent: [], replies });
+    interaction.user = { id: "123456789012345678", username: "dev", tag: "dev" };
+    interaction.client.users.fetch = async (id) => ({
+        id,
+        username: "closed",
+        send: async () => {
+            throw new Error("Cannot send messages to this user");
+        },
+    });
+    await interactionCreate.execute(interaction);
+    const text = JSON.stringify(replies.at(-1).payload.components[0].toJSON());
+    assert.ok(text.includes("Reply not sent"));
+    assert.ok(text.includes("does not accept direct messages"));
+});

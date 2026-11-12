@@ -1,4 +1,6 @@
-const { LabelBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, escapeMarkdown } = require("discord.js");
+const {
+    ActionRowBuilder, ButtonBuilder, ButtonStyle, LabelBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, escapeMarkdown,
+} = require("discord.js");
 const { devUserIds } = require("../../config/env");
 const { buildContainer, appendDivider, appendFooter, appendText, v2Payload } = require("../../ui/containers");
 const { COLORS } = require("../../ui/theme");
@@ -14,6 +16,10 @@ const KINDS = {
 /** Reports that come from the website through the notification queue, not from /report. */
 const LANGUAGE_REQUEST = { label: "Language request", accent: COLORS.info };
 
+/** What a reply calls the thing it answers, by the kind in the Reply button's id. */
+const REPLY_SUBJECTS = { issue: "issue report", suggestion: "suggestion", language: "language request" };
+const REPLY_MAX = 2000;
+
 const TITLE_MAX = 100;
 const DESCRIPTION_MAX = 2000;
 /** One report per user per this long, per shard: enough to stop accidental or spammed repeats. */
@@ -22,6 +28,10 @@ const lastReportAt = new Map();
 
 function isConfigured() {
     return devUserIds.length > 0;
+}
+
+function isDeveloper(userId) {
+    return devUserIds.includes(userId);
 }
 
 /** @param {keyof KINDS} kind */
@@ -71,7 +81,7 @@ async function deliverReport(client, { kind, title, description, reporter, guild
     const container = reportContainer(info, title, description, [
         `From ${reporter.tag ?? reporter.username} (${reporter.id})`,
         guild ? `in ${guild.name} (${guild.id})` : "in a DM",
-    ].join(" "));
+    ].join(" "), { userId: reporter.id, kind: KINDS[kind] ? kind : "issue" });
 
     const results = await Promise.allSettled(devUserIds.map(async (id) => {
         const user = await client.users.fetch(id);
@@ -86,13 +96,85 @@ async function deliverReport(client, { kind, title, description, reporter, guild
     }
 }
 
-/** A report as the developers get it: what it is and its title, the text, and who sent it from where. */
-function reportContainer(info, title, description, footer) {
+/**
+ * A report as the developers get it: what it is and its title, the text, who sent it from where, and a
+ * button to answer them.
+ */
+function reportContainer(info, title, description, footer, replyTo) {
     const container = buildContainer({ title: `${info.label}: ${title}`, accent: info.accent });
     appendText(container, description);
     appendDivider(container);
     appendFooter(container, footer);
+    container.addActionRowComponents(new ActionRowBuilder().addComponents(new ButtonBuilder()
+        .setCustomId(encode("report", "reply", replyTo.userId, replyTo.kind))
+        .setLabel("Reply")
+        .setStyle(ButtonStyle.Secondary)));
     return container;
+}
+
+/** The form a developer writes a reply in. */
+function buildReplyModal(userId, kind) {
+    const text = new TextInputBuilder()
+        .setCustomId("reply")
+        .setStyle(TextInputStyle.Paragraph)
+        .setMaxLength(REPLY_MAX)
+        .setRequired(true);
+    return new ModalBuilder()
+        .setCustomId(encode("report", "answer", userId, kind))
+        .setTitle("Reply")
+        .addLabelComponents(new LabelBuilder()
+            .setLabel("Your reply")
+            .setDescription("Sent to them by direct message from KanbanCord.")
+            .setTextInputComponent(text));
+}
+
+/**
+ * The title of the report a Reply button sits on, read back from the message, so the reply can say what
+ * it answers. Reports start with "### Issue: <title>".
+ *
+ * @param {import("discord.js").Message | null | undefined} message
+ */
+function reportTitleFrom(message) {
+    const texts = [];
+    const walk = (components) => {
+        for (const component of components ?? []) {
+            if (typeof component.content === "string") {
+                texts.push(component.content);
+            }
+            walk(component.components);
+        }
+    };
+    walk(message?.components);
+    const heading = texts.map((text) => text.split("\n")[0]).find((line) => line.startsWith("### "));
+    return heading ? heading.slice(4).replace(/^[^:]*: /, "") : null;
+}
+
+/**
+ * Sends a developer's reply to whoever sent the report, by direct message.
+ *
+ * @param {import("discord.js").Client} client
+ * @param {{ userId: string, kind: string, about: string | null, text: string }} reply
+ * @returns {Promise<import("discord.js").User>} who it went to
+ */
+async function deliverReply(client, { userId, kind, about, text }) {
+    const subject = REPLY_SUBJECTS[kind] ?? REPLY_SUBJECTS.issue;
+    const container = buildContainer({ title: `A reply to your ${subject}`, accent: COLORS.info });
+    if (about) {
+        appendText(container, `> ${escapeMarkdown(about)}`);
+    }
+    appendText(container, text);
+    appendFooter(container, "From the KanbanCord developer. To answer, use /report.");
+    let user;
+    try {
+        user = await client.users.fetch(userId);
+        await user.send(v2Payload(container));
+    } catch (error) {
+        logger.warn(`[Report] Could not send a reply to ${userId}: ${error.message}`);
+        throw new UserFacingError("Reply not sent", user
+            ? `${escapeMarkdown(user.username)} does not accept direct messages from KanbanCord, or shares no server with it any more.`
+            : "That person could not be found.");
+    }
+    return user;
 }
 
 /** A language's English name ("Brazilian Portuguese"), or its code when it has none. */
@@ -116,6 +198,7 @@ function buildLanguageRequestMessage(request) {
         `${escapeMarkdown(languageName(request.language))} (${escapeMarkdown(request.language)})`,
         request.note ? escapeMarkdown(request.note) : "-# No note.",
         `From ${escapeMarkdown(request.userName ?? "someone")} (${request.userId}) on the website`,
+        { userId: request.userId, kind: "language" },
     );
     return v2Payload(container);
 }
@@ -123,7 +206,11 @@ function buildLanguageRequestMessage(request) {
 module.exports = {
     KINDS,
     isConfigured,
+    isDeveloper,
     buildReportModal,
+    buildReplyModal,
+    reportTitleFrom,
+    deliverReply,
     claimCooldown,
     deliverReport,
     buildLanguageRequestMessage,

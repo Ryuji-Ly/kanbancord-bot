@@ -19,7 +19,8 @@ module.exports = {
         description: "Sends a problem or an idea straight to the KanbanCord developer. A form opens for a title "
             + "and a description.",
         examples: ["/report type:Issue", "/report type:Suggestion"],
-        notes: "For a problem, say what you did, what happened, and what you expected. One report per minute.",
+        notes: "For a problem, say what you did, what happened, and what you expected. The developer may reply by "
+            + "direct message. One report per minute.",
     },
 
     /** @param {import("../utils/interactionContext").InteractionContext} ctx */

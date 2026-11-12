@@ -46,7 +46,7 @@ on every board and task, live board posts, update feeds, a thread per task, and 
 | `/kanbancord reminders` | For server managers: when people are reminded before a task is due (a day before unless changed; up to five times). |
 | `/kanbancord settings` · `audit-channel` · `feed` | For server managers: update feeds (what they post, who they mention, which boards, buttons on posts) and the audit log channel. |
 | `/audit` | The audit log, newest first, filtered by board, person or kind of change. Only the person who ran it sees it. |
-| `/report` | Send a bug report or suggestion to the developer. |
+| `/report` | Send a bug report or suggestion to the developer, who can reply by direct message. |
 | `/help` | Every command, with examples. |
 
 Task and board views come with buttons and menus for the common actions, so most things take a click rather than a
@@ -81,7 +81,7 @@ npm run dev
 | `KANBANCORD_INTERNAL_SYNC_TOKEN` | The shared secret the API expects from the bot. |
 | `KANBANCORD_WEB_URL` | The website, for "Open on website" links. Defaults to `https://kanbancord.com`. |
 | `KANBANCORD_SUPPORT_URL` | The support server invite linked from `/help`. Defaults to the KanbanCord support server. |
-| `KANBANCORD_DEV_USER_IDS` | Optional: Discord user IDs that receive `/report` submissions. |
+| `KANBANCORD_DEV_USER_IDS` | Optional: Discord user IDs that receive `/report` submissions and can answer them with the Reply button. |
 | `KANBANCORD_STATUS_HEARTBEAT_URL` | Optional: the status page's heartbeat address, called every minute while the bot is connected. |
 | `BOTBOARD_TOKEN`, `DISCORDBOTLIST_TOKEN`, `TOPGG_TOKEN` | Optional: tokens from bot-listing sites, to keep their server count current. For Top.gg, a v1 project token with only Metrics: write. |
 
