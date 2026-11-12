@@ -40,7 +40,7 @@ on every board and task, live board posts, update feeds, a thread per task, and 
 | `/task label` · `priority` · `due` | Organise tasks with labels, priorities and due dates. |
 | `/label` · `/priority` `list` · `create` · `edit` · `delete` | Manage a board's labels and priority levels (`/priority move` reorders them). `/label list` shows how many of each label's tasks are done and who has the open ones. |
 | `/comment list` · `add` | Discuss a task. |
-| `/notifications` | Choose what the bot tells you by direct message; `reminders:` sets your own reminder times before a due date, everywhere or for one `board`. |
+| `/notifications` | Choose what the bot tells you by direct message; `reminders:` sets your own reminder times before a due date, everywhere or for one `board`; `timezone:` sets the time zone the times you type are read in (the website sets it from your device). |
 | `/ping` | Latency to Discord and to KanbanCord's API, and how long the bot has been up. |
 | `/kanbancord features` | For server managers (Manage Server): simple mode, or which features the server uses. |
 | `/kanbancord reminders` | For server managers: when people are reminded before a task is due (a day before unless changed; up to five times). |

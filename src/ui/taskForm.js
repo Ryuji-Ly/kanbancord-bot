@@ -35,8 +35,8 @@ function extraFields(model) {
     }
     if (features.DUE_DATES) {
         fields.push(new LabelBuilder()
-            .setLabel("Due (UTC)")
-            .setDescription(`For example ${EXAMPLES.replace(", or none", "")}.`)
+            .setLabel("Due")
+            .setDescription(`In your time zone (/notifications). E.g. ${EXAMPLES.replace(", or none", "")}.`)
             .setTextInputComponent(new TextInputBuilder()
                 .setCustomId("due").setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(40)));
     }

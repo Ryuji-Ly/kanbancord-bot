@@ -11,7 +11,7 @@ const {
     UserSelectMenuBuilder,
 } = require("discord.js");
 const { encode } = require("../utils/customId");
-const { EXAMPLES, toInputText } = require("../utils/dueDate");
+const { EXAMPLES, toInputText, zoneLabel } = require("../utils/dueDate");
 const { parseServerTime, plain, truncate } = require("../utils/format");
 const { appendText, buildContainer, warningContainer } = require("./containers");
 const { colorChoices, nextColor } = require("../utils/colors");
@@ -286,17 +286,18 @@ function editTaskModal(boardId, task, feature = "act") {
     return modal;
 }
 
-function dueModal(boardId, task) {
+/** @param {string | null} zone the person's time zone, which the date is shown and read in (UTC when null) */
+function dueModal(boardId, task, zone = null) {
     return new ModalBuilder()
         .setCustomId(encode("act", "due", boardId, task.taskId))
         .setTitle("Due date")
         .addLabelComponents(new LabelBuilder()
-            .setLabel("When (UTC)")
+            .setLabel(`When (${zoneLabel(zone)})`.slice(0, 45))
             .setDescription("A date alone is due at the end of that day. Leave empty to remove the due date.")
             .setTextInputComponent(textInput("due", {
                 max: 40,
                 required: false,
-                value: toInputText(parseServerTime(task.dueDate)),
+                value: toInputText(parseServerTime(task.dueDate), zone),
                 placeholder: EXAMPLES,
             })));
 }

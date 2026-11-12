@@ -4,6 +4,7 @@ const { newTaskModal } = require("../../ui/taskForm");
 const { encode } = require("../../utils/customId");
 const panels = require("../../ui/taskPanels");
 const { parseDue } = require("../../utils/dueDate");
+const { myTimeZone } = require("../settings/timeZone");
 const { UserFacingError } = require("../../utils/errorMessages");
 const { plain } = require("../../utils/format");
 const actions = require("./taskActions");
@@ -115,10 +116,11 @@ async function taskPriority(ctx) {
 }
 
 async function taskDue(ctx) {
-    const due = parseDue(ctx.interaction.options.getString("when", true));
+    const zone = await myTimeZone(ctx);
+    const due = parseDue(ctx.interaction.options.getString("when", true), { zone });
     await ctx.defer();
     const { board, task } = await boardAndTask(ctx);
-    await showTask(ctx, board.boardId, await actions.setDue(ctx, board.boardId, task.taskId, due));
+    await showTask(ctx, board.boardId, await actions.setDue(ctx, board.boardId, task.taskId, due, zone));
 }
 
 /** Asks first: deleting a task cannot be undone. */

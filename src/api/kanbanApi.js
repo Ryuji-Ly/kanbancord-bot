@@ -38,6 +38,11 @@ function forUser({ userId, guildId }) {
             get: () => request("/api/me/reminders", { headers }),
             update: (changes) => request("/api/me/reminders", { method: "PUT", headers, body: changes }),
         },
+        /** The user's time zone, for reading the times they type. */
+        myTimeZone: {
+            get: () => request("/api/me/time-zone", { headers }),
+            update: (changes) => request("/api/me/time-zone", { method: "PUT", headers, body: changes }),
+        },
     };
 }
 

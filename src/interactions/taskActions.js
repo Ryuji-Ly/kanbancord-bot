@@ -5,6 +5,7 @@ const { createLabel, createPriority } = require("../services/boards/labelActions
 const { columnView, taskViewById } = require("../services/boards/viewService");
 const panels = require("../ui/taskPanels");
 const { parseDue } = require("../utils/dueDate");
+const { myTimeZone } = require("../services/settings/timeZone");
 const { UserFacingError } = require("../utils/errorMessages");
 const { readNewTask } = require("../ui/taskForm");
 const { sendFeatureSuggestions } = require("../services/guide/featureSuggestions");
@@ -51,7 +52,7 @@ registerComponentHandler("act", async (ctx, { action, args }) => {
             return ctx.showModal(panels.editTaskModal(boardId, await cachedTask(ctx, boardId, taskId)));
         }
         if (choice === "due") {
-            return ctx.showModal(panels.dueModal(boardId, await cachedTask(ctx, boardId, taskId)));
+            return ctx.showModal(panels.dueModal(boardId, await cachedTask(ctx, boardId, taskId), await myTimeZone(ctx)));
         }
         if (choice === "comment") {
             return ctx.showModal(panels.commentModal(boardId, taskId));
@@ -119,9 +120,10 @@ registerModalHandler("act", async (ctx, { action, args }) => {
 
     if (action === "due") {
         // Read before acknowledging, so a date that cannot be read is reported on its own.
-        const due = parseDue(fields.getTextInputValue("due"));
+        const zone = await myTimeZone(ctx);
+        const due = parseDue(fields.getTextInputValue("due"), { zone });
         await ctx.deferUpdate();
-        return showResult(ctx, boardId, await actions.setDue(ctx, boardId, id, due));
+        return showResult(ctx, boardId, await actions.setDue(ctx, boardId, id, due, zone));
     }
 
     await ctx.deferUpdate();
