@@ -211,3 +211,40 @@ test("a label's progress counts its last-column and archived tasks as done, and 
     const noPeople = snapshotModel({ ...snapshot, features: { ...snapshot.features, ASSIGNEES: false } });
     assert.doesNotMatch(JSON.stringify(views.buildLabelList(noPeople).toJSON()), /open:/, "nobody to name without assignees");
 });
+
+test("columns marked as done replace the last column: in label progress, and as the column view says", () => {
+    const snapshot = snapshotFixture({ tasks: 3 });
+    snapshot.tasks[1].columnId = 11;
+    snapshot.tasks[2].columnId = 12;
+    snapshot.taskLabels = [
+        { id: 1, taskId: 100, labelId: 5 },
+        { id: 2, taskId: 101, labelId: 5 },
+        { id: 3, taskId: 102, labelId: 5 },
+    ];
+    assert.deepEqual([...snapshotModel(snapshot).doneColumnIds], [12], "none marked: the last column");
+
+    snapshot.columns[1].countsAsDone = true;
+    const model = snapshotModel(snapshot);
+
+    assert.deepEqual([...model.doneColumnIds], [11]);
+    assert.equal(views.labelProgress(model, 5).done, 1, "only task 101, in Doing, is done now; 102 in Done is open");
+    assert.match(JSON.stringify(require("../src/ui/boardViews").buildColumnView(model, 11, 0).toJSON()), /counts as done/);
+    assert.doesNotMatch(JSON.stringify(require("../src/ui/boardViews").buildColumnView(model, 12, 0).toJSON()), /counts as done/);
+});
+
+test("/column done sends only the flag, and says which columns count as done now", async () => {
+    const snapshot = snapshotFixture();
+    const { ctx, calls } = fakeContext(snapshot);
+    const put = ctx.api.put;
+    ctx.api.put = async (path, options) => {
+        snapshot.columns.find((column) => path.endsWith(`/columns/${column.columnId}`)).countsAsDone = options.body.countsAsDone;
+        return put(path, options);
+    };
+
+    const result = await require("../src/services/boards/taskActions").setColumnDone(ctx, 1, 11, true);
+
+    const sent = calls.find((call) => call.method === "PUT");
+    assert.equal(sent.path, "/boards/1/columns/11");
+    assert.deepEqual(sent.body, { name: "Doing", boardId: 1, countsAsDone: true }, "no position, so no move permission needed");
+    assert.match(result.notice, /Marked \*\*Doing\*\* as done\. Done now: \*\*Doing\*\*\./);
+});

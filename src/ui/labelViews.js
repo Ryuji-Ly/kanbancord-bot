@@ -10,14 +10,13 @@ const { appendFooter, appendText, buildContainer, warningContainer } = require("
 const tasksText = (count) => `${count} task${count === 1 ? "" : "s"}`;
 
 /**
- * How far a label's tasks are: done (in the board's last column, or archived) out of all of them, and who still
+ * How far a label's tasks are: done (in a column that counts as done, or archived) out of all of them, and who still
  * has the open ones. Archived tasks are not in the snapshot, but their labels are: a label on a task the snapshot
  * does not have is on an archived task.
  * @returns {{ total: number, done: number, people: Array<[string, number]>, unassigned: number }}
  */
 function labelProgress(model, labelId) {
     const onBoard = new Map(model.tasks.map((task) => [task.taskId, task]));
-    const lastColumn = model.columns.at(-1)?.columnId;
     let total = 0;
     let done = 0;
     let unassigned = 0;
@@ -28,7 +27,7 @@ function labelProgress(model, labelId) {
         }
         total++;
         const task = onBoard.get(taskLabel.taskId);
-        if (!task || task.columnId === lastColumn) {
+        if (!task || model.doneColumnIds.has(task.columnId)) {
             done++;
             continue;
         }

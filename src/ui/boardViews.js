@@ -171,7 +171,8 @@ function buildColumnView(model, columnId, page) {
     const container = buildContainer({
         title: `${plain(board.name, 60)} › ${column ? plain(column.name, 60) : "Missing column"}`,
     });
-    appendText(container, `-# ${tasks.length} task${tasks.length === 1 ? "" : "s"}${pages > 1 ? ` · page ${current + 1} of ${pages}` : ""}`);
+    const done = column && model.doneColumnIds.has(columnId) ? " · counts as done" : "";
+    appendText(container, `-# ${tasks.length} task${tasks.length === 1 ? "" : "s"}${done}${pages > 1 ? ` · page ${current + 1} of ${pages}` : ""}`);
     if (!column) {
         appendText(container, "This column no longer exists.");
     } else if (onPage.length === 0) {

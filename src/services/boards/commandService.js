@@ -190,6 +190,13 @@ async function columnRename(ctx) {
     await ctx.reply(await boardViewById(ctx, board.boardId, result.notice));
 }
 
+async function columnDone(ctx) {
+    await ctx.defer();
+    const { board, column } = await boardAndColumn(ctx);
+    const result = await actions.setColumnDone(ctx, board.boardId, column.columnId, ctx.interaction.options.getBoolean("done", true));
+    await ctx.reply(await boardViewById(ctx, board.boardId, result.notice));
+}
+
 async function columnMove(ctx) {
     await ctx.defer();
     const { board, column } = await boardAndColumn(ctx);
@@ -265,6 +272,7 @@ module.exports = {
     columnAdd,
     columnRename,
     columnMove,
+    columnDone,
     columnDelete,
     columnArchiveTasks,
     boardCreate,

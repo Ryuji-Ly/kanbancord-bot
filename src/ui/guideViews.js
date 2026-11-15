@@ -101,7 +101,8 @@ const STEPS = [
                 + "`/task restore` brings one back",
             "Or open a column from `/board view`: it has a menu to move it and buttons to add a task, rename or delete it. "
                 + "`/board view` itself has **Add column**.",
-            "The last column counts as **done**: tasks there get no due-date reminders.",
+            "The last column counts as **done**: tasks there get no due-date reminders. To choose other columns, "
+                + "such as when Done is not the last one, use `/column done`.",
         ],
     },
     {

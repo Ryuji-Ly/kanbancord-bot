@@ -27,6 +27,12 @@ module.exports = {
                 .addIntegerOption((option) =>
                     option.setName("position").setDescription("Where it goes: 1 is the first column").setRequired(true).setMinValue(1)))
         .addSubcommand((sub) =>
+            sub.setName("done").setDescription("Choose whether a column's tasks count as done (no due reminders)")
+                .addStringOption(boardOption())
+                .addStringOption(columnOption())
+                .addBooleanOption((option) =>
+                    option.setName("done").setDescription("True: its tasks count as done").setRequired(true)))
+        .addSubcommand((sub) =>
             sub.setName("archive-tasks").setDescription("Archive every task in a column, such as Done")
                 .addStringOption(boardOption())
                 .addStringOption(columnOption()))
@@ -50,6 +56,13 @@ module.exports = {
                 examples: ["/column move board:Sprint column:Review position:3"],
                 notes: "A position past the end moves it to the end.",
             },
+            done: {
+                description: "Chooses which columns count as done. Tasks in them get no due-date reminders and count "
+                    + "as done in label progress, and ticked items you import go to the first of them.",
+                examples: ["/column done board:Sprint column:Done done:True", "/column done board:Sprint column:Archive done:False"],
+                notes: "Until any column is marked, the board's last column counts as done. Once one is, only the "
+                    + "marked ones do. Archived tasks always count as done.",
+            },
             "archive-tasks": {
                 description: "Asks for confirmation, then takes every task in the column off the board. They keep "
                     + "everything and can be restored one by one.",
@@ -72,6 +85,8 @@ module.exports = {
                 return flows.columnRename(ctx);
             case "move":
                 return flows.columnMove(ctx);
+            case "done":
+                return flows.columnDone(ctx);
             case "archive-tasks":
                 return flows.columnArchiveTasks(ctx);
             case "delete":

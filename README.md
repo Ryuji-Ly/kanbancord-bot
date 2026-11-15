@@ -33,6 +33,7 @@ on every board and task, live board posts, update feeds, a thread per task, and 
 | **Create task** (on a message) | Long-press or right-click any message, then Apps → Create task: the message becomes a task, linking back to it. |
 | `/column add` · `rename` · `move` · `delete` | Shape a board's columns. |
 | `/column archive-tasks` | Archive every task in a column at once, such as a long Done column. |
+| `/column done` | Choose which columns count as done: no due-date reminders, done in label progress. Until one is chosen, the last column does. |
 | `/task create` · `view` · `edit` · `move` · `delete` | Add tasks and move them through the board. |
 | `/task archive` · `restore` | Take a task off the board, keeping everything, and bring it back to the end of its column. |
 | `/task import` | Add tasks to a board from a pasted list or a file (text, Markdown, CSV, spreadsheet cells or a board file), after a private preview. |
