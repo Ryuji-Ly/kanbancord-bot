@@ -72,7 +72,13 @@ function labelChoices(model, typed) {
     );
 }
 
-const FOLLOWING_BOARD = { task: taskChoices, column: columnChoices, priority: priorityChoices, label: labelChoices };
+/** Each is called with (model, typed, commandName); taskChoices takes a task list third, so it is not passed as is. */
+const FOLLOWING_BOARD = {
+    task: (model, typed) => taskChoices(model, typed),
+    column: columnChoices,
+    priority: priorityChoices,
+    label: labelChoices,
+};
 
 /** Answers autocomplete for any command whose options include `board` and those that follow it. */
 async function respondBoardOptions(ctx) {

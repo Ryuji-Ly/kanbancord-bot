@@ -170,6 +170,29 @@ test("autocomplete: /priority never offers \"No priority\", /task priority does,
     assert.deepEqual(await respond("label", { name: "color", value: "red" }, null), ["#dc2626"]);
 });
 
+test("autocomplete: a task option suggests the chosen board's tasks, in every command that has one", async () => {
+    const snapshot = snapshotFixture({ tasks: 3 });
+    for (const commandName of ["task", "comment"]) {
+        let answered;
+        const { ctx } = fakeContext(snapshot);
+        ctx.interaction = {
+            commandName,
+            options: {
+                getFocused: () => ({ name: "task", value: "" }),
+                getString: (name) => (name === "board" ? "1" : null),
+                getSubcommand: () => "view",
+            },
+            respond: async (choices) => {
+                answered = choices;
+            },
+        };
+
+        await respondBoardOptions(ctx);
+
+        assert.deepEqual(answered.map((choice) => choice.value).sort(), ["100", "101", "102"], commandName);
+    }
+});
+
 test("a label's progress counts its last-column and archived tasks as done, and who has the open ones", () => {
     const snapshot = snapshotFixture({ tasks: 4 });
     snapshot.tasks[1].columnId = 12;
