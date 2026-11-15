@@ -285,3 +285,34 @@ test("a language request with no developers configured is dropped, not retried",
     assert.deepEqual(await deliverPlan(requestPlan(), senders), { sent: 0, skipped: 1, retry: false });
     assert.deepEqual(sent, []);
 });
+
+function replyPlan(reply) {
+    return { ...requestPlan(), kind: "ROADMAP_REPLY", request: null, reply };
+}
+
+test("a roadmap comment goes to the one person it is for, with a link to the issue, mentioning nobody", async () => {
+    const { sent, senders } = fakeSenders();
+    const result = await deliverPlan(replyPlan({
+        userId: MIA, taskId: "77", taskTitle: "Dark *mode*", authorName: "Dev", content: "Planned @everyone",
+    }), senders);
+
+    assert.deepEqual(result, { sent: 1, skipped: 0, retry: false });
+    assert.deepEqual(sent.map((item) => item.to), [`@${MIA}`]);
+    assert.deepEqual(sent[0].payload.allowedMentions, { parse: [] });
+    const parts = sent[0].payload.components[0].toJSON().components;
+    const texts = parts.map((part) => part.content).filter(Boolean);
+    assert.equal(texts[0], "### New comment on “Dark " + String.fromCharCode(92) + "*mode" + String.fromCharCode(92) + "*”",
+        "the title is shown as typed");
+    assert.equal(texts[1], "**Dev:**" + String.fromCharCode(10) + "Planned @everyone");
+    assert.equal(parts.find((part) => part.type === 1).components[0].url, "https://kanbancord.com/roadmap?task=77");
+});
+
+test("a roadmap comment that is gone is dropped; one that cannot reach them is not retried", async () => {
+    const gone = fakeSenders();
+    assert.deepEqual(await deliverPlan(replyPlan(null), gone.senders), { sent: 0, skipped: 1, retry: false });
+    assert.deepEqual(gone.sent, []);
+
+    const closed = fakeSenders({ fail: { [MIA]: Object.assign(new Error("Cannot send messages to this user"), { code: 50007 }) } });
+    const reply = { userId: MIA, taskId: "77", taskTitle: "Dark mode", authorName: "Dev", content: "Hi" };
+    assert.deepEqual(await deliverPlan(replyPlan(reply), closed.senders), { sent: 0, skipped: 1, retry: false });
+});

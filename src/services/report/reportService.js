@@ -1,7 +1,7 @@
 const {
     ActionRowBuilder, ButtonBuilder, ButtonStyle, LabelBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, escapeMarkdown,
 } = require("discord.js");
-const { devUserIds } = require("../../config/env");
+const { devUserIds, webAppUrl } = require("../../config/env");
 const { buildContainer, appendDivider, appendFooter, appendText, v2Payload } = require("../../ui/containers");
 const { COLORS } = require("../../ui/theme");
 const { encode } = require("../../utils/customId");
@@ -203,6 +203,30 @@ function buildLanguageRequestMessage(request) {
     return v2Payload(container);
 }
 
+/** A comment is shown up to this long in the direct message; the rest is on the roadmap. */
+const ROADMAP_COMMENT_SHOWN = 1500;
+
+/**
+ * Someone commented on a roadmap issue this person reported or commented on. The comment is theirs to write, so
+ * it is shown as they wrote it, but (as in every message the bot sends) it mentions nobody.
+ *
+ * @param {{ userId: string, taskId: string, taskTitle: string, authorName: string, content: string }} reply
+ */
+function buildRoadmapReplyMessage(reply) {
+    const container = buildContainer({ title: `New comment on “${escapeMarkdown(reply.taskTitle)}”`, accent: COLORS.info });
+    const content = reply.content.length > ROADMAP_COMMENT_SHOWN
+        ? `${reply.content.slice(0, ROADMAP_COMMENT_SHOWN - 1).trimEnd()}…`
+        : reply.content;
+    appendText(container, `**${escapeMarkdown(reply.authorName ?? "Someone")}:**\n${content}`);
+    container.addActionRowComponents(new ActionRowBuilder().addComponents(new ButtonBuilder()
+        .setStyle(ButtonStyle.Link)
+        .setLabel("Open on the roadmap")
+        .setURL(`${webAppUrl}/roadmap?task=${encodeURIComponent(reply.taskId)}`)));
+    appendFooter(container, "You reported or commented on this on KanbanCord's roadmap. Turn comment messages off "
+        + "with /notifications.");
+    return v2Payload(container);
+}
+
 module.exports = {
     KINDS,
     isConfigured,
@@ -214,5 +238,6 @@ module.exports = {
     claimCooldown,
     deliverReport,
     buildLanguageRequestMessage,
+    buildRoadmapReplyMessage,
     languageName,
 };
