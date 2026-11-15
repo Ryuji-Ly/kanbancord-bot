@@ -126,6 +126,9 @@ function snapshotModel(snapshot) {
     const roleAssignmentsOf = (task) => (snapshot.roleAssignments ?? []).filter((role) => role.taskId === task.taskId);
     const taskLabelsOf = (task) => snapshot.taskLabels.filter((taskLabel) => taskLabel.taskId === task.taskId);
     const followed = new Set((snapshot.followedTaskIds ?? []).map(Number));
+    // Columns marked as done, or the last column when none is: the API's rule (DoneColumns), for what is shown here.
+    const marked = columns.filter((column) => column.countsAsDone);
+    const doneColumnIds = new Set((marked.length > 0 ? marked : columns.slice(-1)).map((column) => column.columnId));
 
     return {
         board: snapshot.board,
@@ -135,6 +138,8 @@ function snapshotModel(snapshot) {
         permissions: snapshot.permissions ?? {},
         columns,
         tasksIn,
+        /** The columns whose tasks count as done: no due reminders, done in label progress. */
+        doneColumnIds,
         /** Every task, in no particular order. */
         tasks: snapshot.tasks,
         /** Which labels are on which tasks. */

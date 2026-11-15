@@ -40,7 +40,8 @@ module.exports = {
             list: {
                 description: "Shows every label on the board with its colour, how many of its tasks are done, and "
                     + "who still has the open ones.",
-                notes: "Done means in the board's last column, or archived.",
+                notes: "Done means in a column that counts as done (the last one, unless others are marked with "
+                    + "`/column done`), or archived.",
                 examples: ["/label list board:Sprint"],
             },
             create: {

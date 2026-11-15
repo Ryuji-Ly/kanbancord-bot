@@ -270,6 +270,27 @@ async function addColumn(ctx, boardId, name) {
     return after(ctx, boardId, { columnId: column.columnId, notice: `Added column **${column.name}**` });
 }
 
+/** Marks a column as done or not. Marking any replaces the default, where the last column counts as done. */
+async function setColumnDone(ctx, boardId, columnId, done) {
+    const model = await currentModel(ctx, boardId);
+    const column = model.column(Number(columnId));
+    if (!column) {
+        throw new UserFacingError("Column not found", "That column no longer exists.");
+    }
+    await ctx.api.put(`/boards/${boardId}/columns/${column.columnId}`, {
+        body: { name: column.name, boardId: Number(boardId), countsAsDone: done },
+    });
+    const updated = await currentModel(ctx, boardId);
+    const doneNames = updated.columns.filter((entry) => updated.doneColumnIds.has(entry.columnId))
+        .map((entry) => `**${entry.name}**`).join(", ");
+    const marked = updated.columns.some((entry) => entry.countsAsDone);
+    return after(ctx, boardId, {
+        columnId: column.columnId,
+        notice: `${done ? "Marked" : "Unmarked"} **${column.name}** as done. Done now: ${doneNames}`
+            + (marked ? "." : " (the last column, since none is marked)."),
+    });
+}
+
 async function renameColumn(ctx, boardId, columnId, name) {
     const column = (await currentModel(ctx, boardId)).column(Number(columnId));
     if (!column) {
@@ -367,6 +388,7 @@ module.exports = {
     addComment,
     addColumn,
     renameColumn,
+    setColumnDone,
     moveColumn,
     deleteColumn,
     archiveColumnTasks,
