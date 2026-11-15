@@ -6,7 +6,7 @@ const { componentCount } = require("../ui/containers");
 const { buildFeedCard } = require("../ui/feedViews");
 const { buildAuditMessage, buildDirectMessage, buildFeedMessage } = require("../ui/notificationViews");
 const { channelVisibility, serverName } = require("../services/notifications/visibility");
-const { buildLanguageRequestMessage } = require("../services/report/reportService");
+const { buildLanguageRequestMessage, buildRoadmapReplyMessage } = require("../services/report/reportService");
 const { devUserIds } = require("../config/env");
 const logger = require("../utils/logger");
 const { deliverWithThread } = require("./taskThreads");
@@ -153,6 +153,8 @@ async function deliverPlan(plan, senders) {
             return deliverServerPlan(plan, senders);
         case "LANGUAGE_REQUEST":
             return deliverLanguageRequest(plan, senders);
+        case "ROADMAP_REPLY":
+            return deliverRoadmapReply(plan, senders);
         default:
             logger.error(`[Delivery] Batch ${plan.batchId} is of an unknown kind (${plan.kind}): not delivered`);
             return { sent: 0, skipped: 0, retry: true };
@@ -188,6 +190,28 @@ async function deliverLanguageRequest(plan, senders) {
         }
     }
     return { sent, skipped, retry: sent === 0 && transientFailure };
+}
+
+/**
+ * A comment on a roadmap issue, for one person who took part in it, by direct message. Nothing to send when the
+ * comment or the issue is gone by now.
+ */
+async function deliverRoadmapReply(plan, senders) {
+    if (!plan.reply) {
+        return { sent: 0, skipped: 1, retry: false };
+    }
+    try {
+        await senders.sendToUser(plan.reply.userId, buildRoadmapReplyMessage(plan.reply));
+        return { sent: 1, skipped: 0, retry: false };
+    } catch (error) {
+        if (isPermanent(error)) {
+            // They do not accept direct messages from the bot, or share no server with it.
+            logger.warn(`[Delivery] Roadmap reply to ${plan.reply.userId}: ${error.message}`);
+            return { sent: 0, skipped: 1, retry: false };
+        }
+        logger.error(`[Delivery] Roadmap reply to ${plan.reply.userId}: ${error.stack ?? error.message}`);
+        return { sent: 0, skipped: 0, retry: true };
+    }
 }
 
 /** Changes on a server, or a reminder: to its channels, the task's thread and its people. */
