@@ -80,6 +80,18 @@ function fakeContext(snapshot = snapshotFixture()) {
 
 const writes = (calls) => calls.filter((call) => call.method !== "GET");
 
+test("following a board follows it for the person asking, and says what that means", async () => {
+    const { ctx, calls } = fakeContext();
+
+    const followed = await actions.setBoardFollowing(ctx, 1, true);
+    const unfollowed = await actions.setBoardFollowing(ctx, 1, false);
+
+    assert.deepEqual(writes(calls).map((call) => `${call.method} ${call.path}`), ["PUT /boards/1/follow", "DELETE /boards/1/follow"]);
+    assert.match(followed.notice, /all of its tasks, new ones included/);
+    assert.match(unfollowed.notice, /no longer follow/);
+    assert.equal(snapshotModel({ ...snapshotFixture(), followingBoard: true }).followingBoard, true);
+});
+
 test("an edit sends the whole task, changing only what was asked", async () => {
     const { ctx, calls } = fakeContext();
     await actions.setPriority(ctx, 1, 100, null);

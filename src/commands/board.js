@@ -4,7 +4,9 @@ const { boardListView, boardView } = require("../services/boards/viewService");
 const flows = require("../services/boards/commandService");
 const { boardThreads } = require("../services/boards/threadSettings");
 const transfer = require("../services/boards/transfer");
-const { resolveBoard } = require("../services/boards/boardData");
+const { getSnapshot, resolveBoard, snapshotModel } = require("../services/boards/boardData");
+const { setBoardFollowing } = require("../services/boards/taskActions");
+const { infoContainer } = require("../ui/containers");
 const { boardFeeds } = require("../interactions/feedSettings");
 const { buildBoardFeedList } = require("../ui/feedEditorViews");
 const { boardOption } = require("../utils/commandOptions");
@@ -42,6 +44,9 @@ module.exports = {
             sub.setName("post").setDescription("Post a board here that keeps itself up to date").addStringOption(boardOption()))
         .addSubcommand((sub) =>
             sub.setName("notifications").setDescription("Change what the server's feeds post about a board")
+                .addStringOption(boardOption()))
+        .addSubcommand((sub) =>
+            sub.setName("follow").setDescription("Follow or unfollow a board: hear about all of its tasks by direct message")
                 .addStringOption(boardOption()))
         .addSubcommand((sub) =>
             sub.setName("reminders").setDescription("When people are reminded before a task on this board is due")
@@ -138,6 +143,14 @@ module.exports = {
                 examples: ["/board import file:sprint.kanbancord.json", "/board import file:sprint.kanbancord.json name:Sprint 13 permissions:False"],
                 notes: "Needs permission to create boards. A name already in use gets a number added.",
             },
+            follow: {
+                description: "Follows the board, or unfollows it if you already do. Following a board is like following "
+                    + "each of its tasks, new ones included: you hear about them by direct message, for the events you "
+                    + "chose in `/notifications`.",
+                examples: ["/board follow board:Sprint"],
+                notes: "Only you are told. The board view has the same button. To hear about new tasks on one board "
+                    + "only, follow it and switch on Task created in `/notifications`.",
+            },
             reminders: {
                 description: "Shows or sets when people are reminded before a task on this board is due, instead of the "
                     + "server's times. They are also reminded once a task is overdue.",
@@ -195,6 +208,13 @@ module.exports = {
                 return transfer.boardExport(ctx);
             case "import":
                 return transfer.boardImport(ctx);
+            case "follow": {
+                await ctx.defer({ ephemeral: true });
+                const board = await resolveBoard(ctx, options.getString("board", true));
+                const model = snapshotModel(await getSnapshot(ctx, board.boardId, { fresh: true }));
+                const result = await setBoardFollowing(ctx, board.boardId, !model.followingBoard);
+                return ctx.reply(infoContainer(null, `${result.notice}.`));
+            }
             case "reminders":
                 await ctx.defer({ ephemeral: true });
                 return ctx.reply(await boardReminders(ctx, options.getString("board", true), options.getString("times")));

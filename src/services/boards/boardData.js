@@ -165,6 +165,8 @@ function snapshotModel(snapshot) {
         rolesOf: (task) => (features.ASSIGNEES ? roleAssignmentsOf(task).map((r) => String(r.roleId)) : []),
         /** Whether the person who loaded the board follows the task. */
         isFollowing: (task) => followed.has(Number(task.taskId)),
+        /** Whether the person who loaded the board follows all of it, which counts as following each task. */
+        followingBoard: Boolean(snapshot.followingBoard),
     };
 }
 

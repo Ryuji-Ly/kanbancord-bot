@@ -155,6 +155,10 @@ function buildBoardOverview(model) {
         actionButton("All boards", "board", "list"),
         linkButton("Open on website", boardUrl(board)),
     ));
+    // Whoever presses it follows or unfollows the board for themselves, and is answered privately.
+    rows.push(new ActionRowBuilder().addComponents(
+        actionButton("Follow or unfollow", "board", "follow", board.boardId).setDisabled(locked),
+    ));
     container.addActionRowComponents(...rows);
     return container;
 }

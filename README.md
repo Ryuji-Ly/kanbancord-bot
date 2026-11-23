@@ -29,6 +29,7 @@ on every board and task, live board posts, update feeds, a thread per task, and 
 | `/board notifications` | Change what the server's update feeds post about one board. |
 | `/board threads` | Give each task on a board its own thread in a feed channel, public or private. |
 | `/board reminders` | When people are reminded before a task on one board is due, instead of the server's times. |
+| `/board follow` | Follow or unfollow a board: hear about every task on it by direct message, new ones included. |
 | `/board export` · `import` | Download a board as a file (labels, priorities, assignees, comments and permission rules optional), and create a new board from one, here or in another server. |
 | **Create task** (on a message) | Long-press or right-click any message, then Apps → Create task: the message becomes a task, linking back to it. |
 | `/column add` · `rename` · `move` · `delete` | Shape a board's columns. |
