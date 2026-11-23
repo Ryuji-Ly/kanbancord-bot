@@ -23,10 +23,10 @@ const SERVER_MODE_LABELS = {
 /** The tasks you hear about besides those you are assigned to or created. */
 function alsoAbout(settings) {
     const also = [
-        settings.includeFollowed !== false ? "tasks you follow" : null,
+        settings.includeFollowed !== false ? "tasks and boards you follow" : null,
         settings.includeCommented ? "tasks you commented on" : null,
     ].filter(Boolean);
-    return also.length > 0 ? `\n-# Also ${also.join(" and ")}.` : "\n-# Not tasks you follow.";
+    return also.length > 0 ? `\n-# Also ${also.join(" and ")}.` : "\n-# Not tasks or boards you follow.";
 }
 
 /** An event as it concerns you. */
@@ -45,7 +45,8 @@ function buildMyNotificationsPanel(settings, guildId, guildName) {
 
     const container = buildContainer({
         title: "Your notifications",
-        body: "Direct messages about tasks you are assigned to, created or follow. You are never told about your own changes.",
+        body: "Direct messages about tasks you are assigned to, created or follow, and every task on boards you follow "
+            + "(`/board follow`). You are never told about your own changes.",
     });
     appendDivider(container);
     appendText(container, settings.dmMode === "NEVER"
@@ -85,7 +86,7 @@ function buildMyNotificationsPanel(settings, guildId, guildName) {
             .setMinValues(0)
             .setMaxValues(2)
             .addOptions(
-                { label: "Tasks I follow", value: "followed", default: settings.includeFollowed !== false },
+                { label: "Tasks and boards I follow", value: "followed", default: settings.includeFollowed !== false },
                 { label: "Tasks I commented on", value: "commented", default: Boolean(settings.includeCommented) },
             )),
     );

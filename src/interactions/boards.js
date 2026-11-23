@@ -7,6 +7,7 @@ const { newTaskModal } = require("../ui/taskForm");
 const panels = require("../ui/taskPanels");
 const { encode } = require("../utils/customId");
 const { UserFacingError } = require("../utils/errorMessages");
+const { infoContainer } = require("../ui/containers");
 
 /**
  * Moving around the views, board list → board → column → task → comments and back, and the forms
@@ -38,6 +39,13 @@ registerComponentHandler("board", async (ctx, { action, args }) => {
     }
     if (action === "edit") {
         return ctx.showModal(boardEditModal((await cachedModel(ctx, boardId)).board));
+    }
+
+    if (action === "follow") {
+        await ctx.defer({ ephemeral: true });
+        const model = snapshotModel(await getSnapshot(ctx, boardId, { fresh: true }));
+        const result = await actions.setBoardFollowing(ctx, boardId, !model.followingBoard);
+        return ctx.reply(infoContainer(null, `${result.notice}.`));
     }
 
     await ctx.deferUpdate();

@@ -36,7 +36,7 @@ test("every view leads onward: boards, a board, a column, comments", () => {
     const model = snapshotModel(snapshotFixture({ tasks: 40, longText: true }));
     const board = views.buildBoardOverview(model);
     assertValid(board);
-    assert.deepEqual(ids(board), ["board:column", "task:open", "board:addtask", "board:addcol", "board:edit", "board:list"]);
+    assert.deepEqual(ids(board), ["board:column", "task:open", "board:addtask", "board:addcol", "board:edit", "board:list", "board:follow"]);
 
     const column = views.buildColumnView(model, 10, 0);
     assertValid(column);
@@ -51,7 +51,7 @@ test("controls are shown to everyone; only an archived board takes nothing new",
     const archived = snapshotModel({ ...snapshotFixture(), board: { ...snapshotFixture().board, isArchived: true }, permissions: {} });
     const disabled = (container) => (JSON.stringify(container.toJSON()).match(/"custom_id":"kc1:[^"]+"[^}]*"disabled":true/g) ?? [])
         .map((match) => decode(match.match(/kc1:[^"]+/)[0]).action);
-    assert.deepEqual(disabled(views.buildBoardOverview(archived)), ["addtask", "addcol", "edit"]);
+    assert.deepEqual(disabled(views.buildBoardOverview(archived)), ["addtask", "addcol", "edit", "follow"]);
     const open = snapshotModel({ ...snapshotFixture(), permissions: {} });
     assert.deepEqual(disabled(views.buildBoardOverview(open)), [], "no permissions, nothing hidden or disabled");
 });

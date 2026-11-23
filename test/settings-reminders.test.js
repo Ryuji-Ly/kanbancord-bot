@@ -39,10 +39,10 @@ test("the personal panel shows what you hear about, and offers this server's set
     assert.ok(text.includes("Task moved to another column, Due within a day (reminder), I am assigned"), text);
     assert.ok(!/"value":"TASK_CREATED"[^}]*"default":true/.test(text), "offered in the menu, not chosen");
     assert.ok(text.includes("kc1:ntf:events") && text.includes("kc1:ntf:also"));
-    assert.ok(text.includes("Also tasks you follow and tasks you commented on"), "following is on unless switched off");
+    assert.ok(text.includes("Also tasks and boards you follow and tasks you commented on"), "following is on unless switched off");
     const notFollowing = JSON.stringify(buildMyNotificationsPanel({ ...settings, includeFollowed: false, includeCommented: false },
         "999", "Test Server").toJSON());
-    assert.ok(notFollowing.includes("Not tasks you follow"));
+    assert.ok(notFollowing.includes("Not tasks or boards you follow"));
     assert.ok(text.includes("kc1:ntf:mode") && text.includes("kc1:ntf:server"));
     assert.ok(/"value":"ASSIGNMENTS"[^}]*"default":true/.test(text), "this server's setting is selected");
 

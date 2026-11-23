@@ -231,6 +231,19 @@ async function setFollowing(ctx, boardId, taskId, follow) {
     });
 }
 
+/** Follows or unfollows the whole board, for the person asking: like following each of its tasks, new ones too. */
+async function setBoardFollowing(ctx, boardId, follow) {
+    const { board } = await currentModel(ctx, boardId);
+    const path = `/boards/${board.boardId}/follow`;
+    await (follow ? ctx.api.put(path) : ctx.api.delete(path));
+    return after(ctx, boardId, {
+        notice: follow
+            ? `You are following **${board.name}**: you will hear about all of its tasks, new ones included, by direct `
+                + "message, for the events you chose in `/notifications`"
+            : `You no longer follow **${board.name}**`,
+    });
+}
+
 async function deleteTask(ctx, boardId, taskId) {
     const model = await currentModel(ctx, boardId);
     const task = requireTask(model, taskId);
@@ -382,6 +395,7 @@ module.exports = {
     setRoles,
     setLabels,
     setFollowing,
+    setBoardFollowing,
     deleteTask,
     setTaskArchived,
     archivedTasks,
